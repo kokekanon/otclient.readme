@@ -47,7 +47,7 @@
 ##### Community (Features) 
 
 
-<img align='left' src="https://i.imgur.com/u3yfyDg.gif" width="250">
+<img align='right' src="https://i.imgur.com/u3yfyDg.gif" width="250">
 
 
 
@@ -76,14 +76,14 @@
   - Uncomment and change this line (https://github.com/mehah/otclient/blob/main/init.lua#L6)
 - Colored text [@conde2](https://github.com/conde2)
   - widget:setColoredText("{Colored text, #ff00ff} normal text")
-  <img align='right' src="https://media.giphy.com/media/JKo6P5QyuFkuhLlfVq/giphy.gif" width="300">
 - QR Code support, with auto generate it from string  [@conde2]
   - UIQrCode: 
     - code-border: 2
     - code: Hail OTClient Redemption - Conde2 Dev
 - Typing Icon by [@SkullzOTS](https://github.com/SkullzOTS)
   - To enable just go to [setup.otml](https://github.com/mehah/otclient/blob/main/data/setup.otml) and set draw-typing: true
-- Smooth Walk Elevation Feature by [@SkullzOTS](https://github.com/SkullzOTS)
+
+  <img align='left' src="https://media.giphy.com/media/JKo6P5QyuFkuhLlfVq/giphy.gif" width="200">- Smooth Walk Elevation Feature by [@SkullzOTS](https://github.com/SkullzOTS)
   - View Feature: [Gyazo](https://i.gyazo.com/af0ed0f15a9e4d67bd4d0b2847bd6be7.gif)
   - To enable just go to [modules/game_features/features.lua](https://github.com/mehah/otclient/blob/main/modules/game_features/features.lua#L5), and uncomment line 5 (g_game.enableFeature(GameSmoothWalkElevation)).
 - Lua Debugger for VSCode [see wiki](https://github.com/mehah/otclient/wiki/Lua-Debugging-(VSCode)) [@BenDol](https://github.com/BenDol)
