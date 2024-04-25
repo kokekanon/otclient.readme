@@ -10,24 +10,28 @@
 
 #### [Note: for those who are with the walking system stuttering...](https://github.com/mehah/otclient/blob/main/data/setup.otml#L18)
 
-### Features
+
+### Features 
 
 - C++20
-- Refactored/Optimized Rendering System
+- Refactored/Optimized Rendering System <img align='right' src="https://i.imgur.com/9yxTicD.gif" width="200">
 - Auto Reload Module ([init.lua](https://github.com/mehah/otclient/blob/main/init.lua#L90))
-- Attached Effects System (to create aura, wings...) (code sample: [effects.lua](https://github.com/mehah/otclient/blob/main/modules/game_attachedeffects/effects.lua), [outfit_618.lua](https://github.com/mehah/otclient/blob/main/modules/game_attachedeffects/configs/outfit_618.lua), [code test](https://github.com/mehah/otclient/blob/main/modules/game_attachedeffects/attachedeffects.lua#L1))
 - Idle Animation Support
-- Highlight Mouse Target (press shift to select any object)
 - Crosshair
 - Floor Shadowing
-- Floor View Mode (Normal, Fade, Locked, Always, Always with transparency)
-- Anti-Aliasing Mode Options (Note: Smooth Retro will consume a little more GPU)
-- Floating Effects Option
-- Optimized Terminal
+- Optimized Terminal 
 - Refactored Walk System
+- Floating Effects Option
+- Anti-Aliasing Mode Options (Note: Smooth Retro will consume a little more GPU)
+- Attached Effects System (to create aura, wings...) (code sample: [effects.lua](https://github.com/mehah/otclient/blob/main/modules/game_attachedeffects/effects.lua), [outfit_618.lua](https://github.com/mehah/otclient/blob/main/modules/game_attachedeffects/configs/outfit_618.lua), [code test](https://github.com/mehah/otclient/blob/main/modules/game_attachedeffects/attachedeffects.lua#L1))
+- Floor View Mode (Normal, Fade, Locked, Always, Always with transparency)
+- Highlight Mouse Target (press shift to select any object)
 - Support for more mouse buttons, for example 4 and 5
 - Module Controller System ([Code example](https://github.com/mehah/otclient/blob/cache-for-all/modules/game_minimap/minimap.lua))
 - Some bugs fixed contained in [edubart/otclient](https://github.com/edubart/otclient)
+
+<img align='left' src="https://media.giphy.com/media/JKo6P5QyuFkuhLlfVq/giphy.gif" width="300">
+
 - Client 12.85 ~ 12.92, 13.00 ~ 13.21 support (protobuf)
 - Market has been rewritten to work only [Canary](https://github.com/opentibiabr/canary)
 - Async Texture Loading
@@ -35,9 +39,18 @@
 - Creature Information By UIWidget
   - to enable: [setup.otml](https://github.com/mehah/otclient/blob/e2c5199e52bd86f573c9bb582d7548cfe7a8b026/data/setup.otml#L20)
   - To style: [modules/game_creatureinformation](https://github.com/mehah/otclient/tree/main/modules/game_creatureinformation)
+
   - Note: There is a performance degradation compared to direct programming with Draw Pool, by about ~20%, testing was performed with 60 monsters attacking each other.
 
-##### Community (Features)
+
+
+##### Community (Features) 
+
+
+<img align='left' src="https://i.imgur.com/u3yfyDg.gif" width="250">
+
+
+
 - Mobile Support [@tuliomagalhaes](https://github.com/tuliomagalhaes) & [@BenDol](https://github.com/BenDol)
 - Support Tibia 12.85/protobuf by [@Nekiro](https://github.com/nekiro)
 - Support Discord RPC by [@SkullzOTS](https://github.com/SkullzOTS) (Doesn't work with CMAKE)
@@ -63,6 +76,7 @@
   - Uncomment and change this line (https://github.com/mehah/otclient/blob/main/init.lua#L6)
 - Colored text [@conde2](https://github.com/conde2)
   - widget:setColoredText("{Colored text, #ff00ff} normal text")
+  <img align='right' src="https://media.giphy.com/media/JKo6P5QyuFkuhLlfVq/giphy.gif" width="300">
 - QR Code support, with auto generate it from string  [@conde2]
   - UIQrCode: 
     - code-border: 2
@@ -94,7 +108,7 @@
 
    </h2>
 
-### What is otclient?
+### ![Logo](https://raw.githubusercontent.com/kokekanon/otclient.readme/otclient.readme/src/otcicon.ico)  What is otclient? 
 
 Otclient is an alternative Tibia client for usage with otserv. It aims to be complete and flexible,
 for that it uses LUA scripting for all game interface functionality and configurations files with a syntax
@@ -106,7 +120,8 @@ Otclient is written in C++20 and heavily scripted in lua.
 For a server to connect to, you can build your own with the [forgottenserver](https://github.com/otland/forgottenserver)
 or [canary](https://github.com/opentibiabr/canary).
 
-## The Mobile Project
+
+## <img height="32" src="https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/android/android.png" alt="Android"> The Mobile Project
 This is a fork of edubart's otclient. The objective of this fork it's to develop a runnable otclient on mobiles devices.
 
 Tasks that need to do:
