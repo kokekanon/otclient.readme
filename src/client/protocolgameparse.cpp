@@ -2468,7 +2468,13 @@ void ProtocolGame::parseOpenOutfitWindow(const InputMessagePtr& msg) const
 void ProtocolGame::parseKillTracker(const InputMessagePtr& msg)
 {
     msg->getString(); // monster name
-    getOutfit(msg, false);
+    msg->getU16(); // lookType
+    msg->getU8(); // lookHead
+    msg->getU8(); // lookBody
+    msg->getU8(); // lookLegs
+    msg->getU8(); // lookFeet
+    msg->getU8(); //lookAddons
+
 
     // corpse items
     const uint8_t size = msg->getU8();
