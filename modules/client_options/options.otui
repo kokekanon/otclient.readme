@@ -1,3 +1,58 @@
+CharacterCategoryItem < UIWidget
+  size: 115 22
+  image-source: /images/game/actionbar/1pixel-down-frame
+  image-border: 5
+  UIWidget
+    id: Button
+    size: 115 20
+    anchors.top: parent.top
+    anchors.left: parent.left
+    margin-left: 1
+    margin-top: 1
+    image-source: /images/ui/button-grey-up
+    image-border: 5
+    opacity: 1.0
+    $pressed:
+      image-source: /images/ui/button-grey-down
+    $checked:
+      image-source: /images/ui/button-grey-down
+    UIWidget
+      id: Icon
+      size: 13 13
+      anchors.left: parent.left
+      anchors.verticalCenter: parent.verticalCenter
+      margin-left: 10
+      phantom: true
+      $checked:
+        margin-left: 11
+        margin-top: 1
+      $!checked:
+        margin-left: 10
+        margin-top: 0
+    Label
+      id: Title
+      anchors.left: Icon.right
+      anchors.verticalCenter: Icon.verticalCenter
+      margin-left: 10
+      text-align: center
+      text-auto-resize: true
+      !text: tr('General Stats')
+      color: #ffffff
+      font: cipsoftFont
+      $checked:
+        text-offset: 12 10
+      $!checked:
+        text-offset: 0 0
+    UIWidget
+      id: Arrow
+      size: 7 7
+      anchors.right: parent.right
+      anchors.verticalCenter: parent.verticalCenter
+      margin-right: 5
+      phantom: true
+      image-source: /images/ui/icon-arrow7x7-down
+      visible: false
+
 OptionCheckBox < QtCheckBox
   anchors.left: parent.left
   anchors.right: parent.right
@@ -77,12 +132,14 @@ MiniQtWindow
     anchors.right: parent.right
     opacity: 0.5
 
-  TabBarQtVertical
+  UIWidget
     id: optionsTabBar
     anchors.top: parent.top
     anchors.left: parent.left
     margin-left: 16
     margin-top: 29
+    image-border: 3
+    image-source: /images/ui/2pixel_up_frame_borderimage_dark
     size: 128 453
 
   QtPanel
@@ -93,6 +150,7 @@ MiniQtWindow
     anchors.bottom: optionsTabBar.bottom
     margin-left: 10
     margin-right: 10
+
 
   HorizontalSeparator
     anchors.left: optionsTabBar.left

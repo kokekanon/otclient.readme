@@ -1,4 +1,7 @@
-Panel
+UIWidget
+  id: Cat7
+  anchors.fill: parent
+  visible: false
   SmallReversedQtPanel
     anchors.left: parent.left
     anchors.right: parent.right
