@@ -201,7 +201,7 @@ function selectCharacterPage()
 end
 
 local function createSubWidget(parent, subId, subButton)
-    local subWidget = g_ui.createWidget("CharacterCategoryItem", parent)
+    local subWidget = g_ui.createWidget("OptionsCategory", parent)
     subWidget:setId(subId)
     subWidget.Button.Icon:setIcon(subButton.icon)
     subWidget.Button.Title:setText(subButton.text)
@@ -248,7 +248,7 @@ function configureCharacterCategories()
     controller.ui.optionsTabBar:destroyChildren()
 
     for id, button in ipairs(buttons) do
-        local widget = g_ui.createWidget("CharacterCategoryItem", controller.ui.optionsTabBar)
+        local widget = g_ui.createWidget("OptionsCategory", controller.ui.optionsTabBar)
         widget:setId(id)
         widget.Button.Icon:setIcon(button.icon)
         widget.Button.Title:setText(button.text)
@@ -366,11 +366,11 @@ function controller:onInit()
     extraWidgets.audioButton = modules.client_topmenu.addTopRightToggleButton('audioButton', tr('Audio'),
         '/images/topbuttons/button_mute_up', function() toggleOption('enableAudio') end)
 
-    panels.generalPanel = g_ui.loadUI('general',controller.ui.optionsTabContent)
-    panels.controlPanel = g_ui.loadUI('control',controller.ui.optionsTabContent)
-    panels.consolePanel = g_ui.loadUI('console',controller.ui.optionsTabContent)
-    panels.graphicsPanel = g_ui.loadUI('graphics',controller.ui.optionsTabContent)
-    panels.soundPanel = g_ui.loadUI('audio',controller.ui.optionsTabContent)
+    panels.generalPanel = g_ui.loadUI('syles/controls/general',controller.ui.optionsTabContent)
+    panels.controlPanel = g_ui.loadUI('syles/controls/control',controller.ui.optionsTabContent)
+    panels.consolePanel = g_ui.loadUI('syles/controls/console',controller.ui.optionsTabContent)
+    panels.graphicsPanel = g_ui.loadUI('syles/graphics/graphics',controller.ui.optionsTabContent)
+    panels.soundPanel = g_ui.loadUI('syles/sound/audio',controller.ui.optionsTabContent)
     self.ui:hide()
 
     configureCharacterCategories()

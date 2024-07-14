@@ -243,6 +243,7 @@ controller:registerEvents(g_game, {
         if version >= 1332 then
             g_game.enableFeature(GameForgeConvergence);
         end
+        -- @ delete this
         if version == 1310 then
             g_game.disableFeature(GameThingClock)
             g_game.disableFeature(GameThingCounter)

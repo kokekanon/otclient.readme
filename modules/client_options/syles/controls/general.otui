@@ -1,5 +1,4 @@
 UIWidget
-  id: Cat8
   anchors.fill: parent
   visible: false
 

@@ -1,4 +1,4 @@
-CharacterCategoryItem < UIWidget
+OptionsCategory < UIWidget
   size: 115 22
   image-source: /images/game/actionbar/1pixel-down-frame
   image-border: 5
