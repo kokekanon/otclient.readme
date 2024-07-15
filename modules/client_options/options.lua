@@ -159,6 +159,144 @@ local function setup()
         end
     end
 end
+controller = Controller:new()
+controller:setUI('options')
+controller:bindKeyDown('Ctrl+Shift+F', function() toggleOption('fullscreen') end)
+controller:bindKeyDown('Ctrl+N', toggleDisplays)
+
+function controller:onInit()
+    for k, obj in pairs(options) do
+        if type(obj) ~= "table" then
+            obj = { value = obj }
+            options[k] = obj
+        end
+        g_settings.setDefault(k, obj.value)
+    end
+
+    extraWidgets.optionsButton = modules.client_topmenu.addTopRightToggleButton('optionsButton', tr('Options'),
+        '/images/topbuttons/button_options', toggle)
+    extraWidgets.audioButton = modules.client_topmenu.addTopRightToggleButton('audioButton', tr('Audio'),
+        '/images/topbuttons/button_mute_up', function() toggleOption('enableAudio') end)
+
+    panels.generalPanel = g_ui.loadUI('syles/controls/general',controller.ui.optionsTabContent)
+    panels.controlPanel = g_ui.loadUI('syles/controls/control',controller.ui.optionsTabContent)
+    panels.consolePanel = g_ui.loadUI('syles/controls/console',controller.ui.optionsTabContent)
+    panels.graphicsPanel = g_ui.loadUI('syles/graphics/graphics',controller.ui.optionsTabContent)
+    panels.graphicsEffectsPanel = g_ui.loadUI('syles/graphics/effects',controller.ui.optionsTabContent)
+    
+    panels.interface = g_ui.loadUI('syles/interface/interface',controller.ui.optionsTabContent)
+    panels.interfaceConsole = g_ui.loadUI('syles/interface/console',controller.ui.optionsTabContent)
+    panels.interfaceHUD = g_ui.loadUI('syles/interface/HUD',controller.ui.optionsTabContent)
+
+    
+    panels.soundPanel = g_ui.loadUI('syles/sound/audio',controller.ui.optionsTabContent)
+    
+    panels.misc = g_ui.loadUI('syles/misc/misc',controller.ui.optionsTabContent)
+    panels.miscHelp = g_ui.loadUI('syles/misc/help',controller.ui.optionsTabContent)
+    
+   
+    self.ui:hide()
+
+    configureCharacterCategories()
+    addEvent(setup)
+end
+
+function controller:onTerminate()
+    extraWidgets.optionsButton:destroy()
+    extraWidgets.audioButton:destroy()
+    panels = nil
+    extraWidgets = nil
+end
+
+function setOption(key, value, force)
+    if not modules.game_interface then
+        return
+    end
+
+    local option = options[key]
+    if option == nil or not force and option.value == value then
+        return
+    end
+
+    if option.action then
+        option.action(value, options, controller, panels, extraWidgets)
+    end
+
+
+    -- change value for keybind updates
+    for _, panel in pairs(panels) do
+        local widget = panel:recursiveGetChildById(key)
+        if widget then
+            if widget:getStyle().__class == 'UICheckBox' then
+                widget:setChecked(value)
+            elseif widget:getStyle().__class == 'UIScrollBar' then
+                widget:setValue(value)
+            elseif widget:recursiveGetChildById('valueBar') then
+                widget:recursiveGetChildById('valueBar'):setValue(value)
+            end
+            break
+        end
+    end
+
+    option.value = value
+    g_settings.set(key, value)
+end
+
+function setupOptionsMainButton()
+    if extraWidgets.optionsButtons then
+        return
+    end
+
+    extraWidgets.optionsButtons = modules.game_mainpanel.addSpecialToggleButton('optionsMainButton', tr('Options'),
+        '/images/options/button_options', toggle, true)
+end
+
+function getOption(key)
+    return options[key].value
+end
+
+function show()
+    controller.ui:show()
+    controller.ui:raise()
+    controller.ui:focus()
+end
+
+function hide()
+    controller.ui:hide()
+end
+
+function toggle()
+    if controller.ui:isVisible() then
+        hide()
+        return
+    end
+
+    if not controller.ui.openedCategory then
+        local firstCategory = controller.ui.optionsTabBar:getChildByIndex(1)
+        controller.ui.openedCategory = firstCategory
+        firstCategory.Button:onClick()
+
+        local panelToShow = panels[firstCategory.open]
+        if panelToShow then
+            panelToShow:show()
+
+            controller.ui.selectedOption = panelToShow
+
+        end
+    end
+
+    show()
+end
+
+function addTab(name, panel, icon)
+    print("prevent error, use optionPanel = g_ui.loadUI('option_healthcircle',modules.client_options:getPanel()) ")
+end
+
+function removeTab(v)
+    print("prevent error use     modules.client_options.addButton('Interface', 'HP/MP Circle', optionPanel)")
+end
+
+
 local function toggleSubCategories(parent, isOpen)
     for subId, _ in ipairs(parent.subCategories) do
         local subWidget = parent:getChildById(subId)
@@ -340,153 +478,6 @@ function closeCharacterButtons()
     end
 end
 
-controller = Controller:new()
-controller:setUI('options')
-controller:bindKeyDown('Ctrl+Shift+F', function() toggleOption('fullscreen') end)
-controller:bindKeyDown('Ctrl+N', toggleDisplays)
-
-function controller:onInit()
-    for k, obj in pairs(options) do
-        if type(obj) ~= "table" then
-            obj = { value = obj }
-            options[k] = obj
-        end
-        g_settings.setDefault(k, obj.value)
-    end
-
-    extraWidgets.optionsButton = modules.client_topmenu.addTopRightToggleButton('optionsButton', tr('Options'),
-        '/images/topbuttons/button_options', toggle)
-    extraWidgets.audioButton = modules.client_topmenu.addTopRightToggleButton('audioButton', tr('Audio'),
-        '/images/topbuttons/button_mute_up', function() toggleOption('enableAudio') end)
-
-    panels.generalPanel = g_ui.loadUI('syles/controls/general',controller.ui.optionsTabContent)
-    panels.controlPanel = g_ui.loadUI('syles/controls/control',controller.ui.optionsTabContent)
-    panels.consolePanel = g_ui.loadUI('syles/controls/console',controller.ui.optionsTabContent)
-    panels.graphicsPanel = g_ui.loadUI('syles/graphics/graphics',controller.ui.optionsTabContent)
-    panels.graphicsEffectsPanel = g_ui.loadUI('syles/graphics/effects',controller.ui.optionsTabContent)
-    
-    panels.interface = g_ui.loadUI('syles/interface/interface',controller.ui.optionsTabContent)
-    panels.interfaceConsole = g_ui.loadUI('syles/interface/console',controller.ui.optionsTabContent)
-    panels.interfaceHUD = g_ui.loadUI('syles/interface/HUD',controller.ui.optionsTabContent)
-
-    
-    panels.soundPanel = g_ui.loadUI('syles/sound/audio',controller.ui.optionsTabContent)
-    
-    panels.misc = g_ui.loadUI('syles/misc/misc',controller.ui.optionsTabContent)
-    panels.miscHelp = g_ui.loadUI('syles/misc/help',controller.ui.optionsTabContent)
-    
-   
-    self.ui:hide()
-
-    configureCharacterCategories()
-    addEvent(setup)
-end
-
-function controller:onTerminate()
-    extraWidgets.optionsButton:destroy()
-    extraWidgets.audioButton:destroy()
-    panels = nil
-    extraWidgets = nil
-end
-
-function setOption(key, value, force)
-    if not modules.game_interface then
-        return
-    end
-
-    local option = options[key]
-    if option == nil or not force and option.value == value then
-        return
-    end
-
-    if option.action then
-        option.action(value, options, controller, panels, extraWidgets)
-    end
-
-    -- change value for keybind updates
-
-    for _, panel in pairs(panels) do
-
-        local widget = panel:recursiveGetChildById(key)
-        if widget then
-            if widget:getStyle().__class == 'UICheckBox' then
-                widget:setChecked(value)
-            elseif widget:getStyle().__class == 'UIScrollBar' then
-                widget:setValue(value)
-            elseif widget:recursiveGetChildById('valueBar') then
-                widget:recursiveGetChildById('valueBar'):setValue(value)
-            end
-            break
-        end
-
-    end
-
-    option.value = value
-    g_settings.set(key, value)
-end
-
-function setupOptionsMainButton()
-    if extraWidgets.optionsButtons then
-        return
-    end
-
-    extraWidgets.optionsButtons = modules.game_mainpanel.addSpecialToggleButton('optionsMainButton', tr('Options'),
-        '/images/options/button_options', toggle, true)
-end
-
-function getOption(key)
-    return options[key].value
-end
-
-function show()
-    controller.ui:show()
-    controller.ui:raise()
-    controller.ui:focus()
-end
-
-function hide()
-    controller.ui:hide()
-end
-
-function toggle()
-    if controller.ui:isVisible() then
-        hide()
-        return
-    end
-
-    if not controller.ui.openedCategory then
-        local firstCategory = controller.ui.optionsTabBar:getChildByIndex(1)
-        controller.ui.openedCategory = firstCategory
-        firstCategory.Button:onClick()
-
-        local panelToShow = panels[firstCategory.open]
-        if panelToShow then
-            panelToShow:show()
-
-            controller.ui.selectedOption = panelToShow
-
-        end
-    end
-
-    show()
-end
-
-function addTab(name, panel, icon)
-    --controller.ui.optionsTabBar:addTab(name, panel, icon)
-
-end
-
-function removeTab(v)
-    if type(v) == 'string' then
-        v = controller.ui.optionsTabBar:getTab(v)
-    end
-
-    controller.ui.optionsTabBar:removeTab(v)
-end
-
-function addButton(name, func, icon)
-    --controller.ui.optionsTabBar:addButton(name, func, icon)
-end
 -- Function to create a new category
 function createCategory(text, icon, openPanel, subCategories)
     local newCategory = {

@@ -151,7 +151,6 @@ MiniQtWindow
     margin-left: 10
     margin-right: 10
 
-
   HorizontalSeparator
     anchors.left: optionsTabBar.left
     anchors.right: optionsTabContent.right
