@@ -265,21 +265,16 @@ function toggle()
         hide()
         return
     end
-
     if not controller.ui.openedCategory then
         local firstCategory = controller.ui.optionsTabBar:getChildByIndex(1)
         controller.ui.openedCategory = firstCategory
         firstCategory.Button:onClick()
-
         local panelToShow = panels[firstCategory.open]
         if panelToShow then
             panelToShow:show()
-
             controller.ui.selectedOption = panelToShow
-
         end
     end
-
     show()
 end
 
