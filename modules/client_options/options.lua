@@ -39,16 +39,7 @@ local buttons = {{
     }, {
         text = "Console",
         open = "interfaceConsole"
-    }, --[[ {
-        text = "Game Windows",
-        open = "graphicsPanel"
-    },  ]]{
-        text = "Action Bars",
-        open = "interfaceActionbars"
-    }, --[[ {
-        text = "Control Buttons",
-        open = "graphicsPanel"
-    } ]]
+    }, 
     }
 }, {
     text = "Graphics",
@@ -285,55 +276,51 @@ function configureCharacterCategories()
         function widget.Button.onClick()
             local parent = widget
             local oldOpen = controller.ui.openedCategory
+        
+            -- Cerrar la categoría antigua si existe y es diferente de la actual
+            if oldOpen and oldOpen ~= parent then
+                if  oldOpen.Button then
+                    oldOpen.Button:setChecked(false)
+                    oldOpen.Button.Arrow:setImageSource("/images/ui/icon-arrow7x7-down")
+                end
+    
+                close(oldOpen)
 
+            end
+        
+            -- Manejar subcategorías si existen
             if parent.subCategoriesSize then
                 parent.closedSize = parent.closedSize or parent:getHeight() / (parent.subCategoriesSize + 1) + 15
                 parent.openedSize = parent.openedSize or parent:getHeight() * (parent.subCategoriesSize + 1) - 6
-
+        
                 if not parent.opened then
                     open(parent)
-                    widget.Button:setChecked(true)
-                    widget.Button.Arrow:setImageSource("/images/ui/icon-arrow7x7-right")
-                    widget.Button.Arrow:setVisible(true)
-                else
-          
-                    if controller.ui.selectedOption then
-                        controller.ui.selectedOption:hide()
-                    end
-                    if parent.open then
-                        local panelToShow = panels[parent.open]
-                        if panelToShow then
-                            closeCharacterButtons()
-                            widget.Button:setChecked(true)
-                            widget.Button.Arrow:setImageSource("/images/ui/icon-arrow7x7-right")
-                            widget.Button.Arrow:setVisible(true)
-                            panelToShow:show()
-                            panelToShow:setVisible(true)
-                            controller.ui.selectedOption = panelToShow
-                        else
-                            print("Error: panelToShow is nil or does not exist in panels")
-                        end
-                    end
                 end
             end
-
-            if oldOpen and oldOpen:getId() ~= parent:getId() then
+        
+            -- Actualizar la interfaz para la categoría actual
+            widget.Button:setChecked(true)
+            widget.Button.Arrow:setImageSource("/images/ui/icon-arrow7x7-right")
+            widget.Button.Arrow:setVisible(true)
+        
+            -- Ocultar la opción seleccionada anterior
+            if controller.ui.selectedOption then
+                controller.ui.selectedOption:hide()
+            end
+        
+            -- Mostrar el panel correspondiente
+            local panelToShow = panels[parent.open]
+            if panelToShow then
                 closeCharacterButtons()
-                oldOpen.Button:setChecked(false)
-                oldOpen.Button.Arrow:setImageSource("/images/ui/icon-arrow7x7-down")
-                local selectedOption = controller.ui.selectedOption
-                if selectedOption then
-                    selectedOption:hide()
-                end
-                local panelToShow = panels[parent.open]
-                if panelToShow then
-                    panelToShow:show()
-                    panelToShow:setVisible(true)
-                    controller.ui.selectedOption = panelToShow
-                else
-                    print("Error: panelToShow is nil or does not exist in panels")
-                end
+                panelToShow:show()
+                panelToShow:setVisible(true)
+                controller.ui.selectedOption = panelToShow
+            else
+                print("Error: panelToShow is nil or does not exist in panels")
             end
+        
+            -- Actualizar la categoría abierta
+            controller.ui.openedCategory = parent
         end
     end
 end
@@ -381,7 +368,7 @@ function controller:onInit()
     panels.interface = g_ui.loadUI('syles/interface/interface',controller.ui.optionsTabContent)
     panels.interfaceConsole = g_ui.loadUI('syles/interface/console',controller.ui.optionsTabContent)
     panels.interfaceHUD = g_ui.loadUI('syles/interface/HUD',controller.ui.optionsTabContent)
-    panels.interfaceActionbars = g_ui.loadUI('syles/interface/actionbars',controller.ui.optionsTabContent)
+
     
     panels.soundPanel = g_ui.loadUI('syles/sound/audio',controller.ui.optionsTabContent)
     

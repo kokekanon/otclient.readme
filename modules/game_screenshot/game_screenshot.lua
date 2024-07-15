@@ -143,7 +143,7 @@ end
 -- LuaFormatter on
 
 function destroyOptionsModule()
-    modules.client_options.removeTab('Screenshot')
+    modules.client_options.removeButton("Misc.","Screenshot")
     if optionPanel and not optionPanel:isDestroyed() then
         optionPanel:destroy()
         optionPanel = nil
@@ -171,7 +171,6 @@ function takeScreenshot(name)
         return
     end
 
-
     screenshotController:scheduleEvent(function()
         if  optionPanel:recursiveGetChildById("onlyCaptureGameWindow"):isChecked() then
             g_app.doMapScreenshot(name)
@@ -185,3 +184,4 @@ function OpenFolder()
     local directory = g_resources.getWriteDir():gsub("[/\\]+", "\\") .. autoScreenshotDirName
     g_platform.openDir(directory)
 end
+
