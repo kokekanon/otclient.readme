@@ -94,6 +94,10 @@ function highscoreController:onTerminate()
         worldTypeRadioGroup = nil
     end
 
+    vocationArray = {}
+    Category = {}
+    tempFixworldType = {}
+    serverSide = {}
 end
 
 function onProcessHighscores(serverName, world, worldType, battlEye, vocations, categories, page, totalInPages,
