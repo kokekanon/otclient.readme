@@ -60,7 +60,10 @@ end
 function screenshotController:onTerminate()
     destroyOptionsModule()
 
-
+    ScreenshotType = {}
+    checkboxes = {}
+    TypeScreenshots = {}
+    AutoScreenshotEvents = {}
 end
 
 function screenshotController:onGameStart()
