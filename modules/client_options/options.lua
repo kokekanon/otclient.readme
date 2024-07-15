@@ -6,15 +6,20 @@ local panels = {
     consolePanel = nil,
     graphicsPanel = nil,
     soundPanel = nil,
-    gameMapPanel = nil
+    gameMapPanel = nil,
+    graphicsEffectsPanel = nil,
+    interfaceHUD = nil,
+    interface = nil,
+    misc = nil,
+    miscHelp = nil
 }
 -- LuaFormatter off
 local buttons = {{
 
     text = "Controls",
     icon = "/images/icons/icon_controls",
-    open = "graphicsPanel",
-    subCategories = {{
+    open = "generalPanel",
+--[[     subCategories = {{
         text = "General Hotkeys",
         open = "generalPanel"
     }, {
@@ -23,59 +28,60 @@ local buttons = {{
     }, {
         text = "Custom Hotkeys",
         open = "controlPanel"
-    }}
+    }} ]]
 }, {
     text = "Interface",
     icon = "/images/icons/icon_interface",
-    open = "graphicsPanel",
+    open = "interface",
     subCategories = {{
         text = "HUD",
-        open = "consolePanel"
+        open = "interfaceHUD"
     }, {
         text = "Console",
-        open = "graphicsPanel"
-    }, {
+        open = "interfaceConsole"
+    }, --[[ {
         text = "Game Windows",
         open = "graphicsPanel"
-    }, {
+    },  ]]{
         text = "Action Bars",
-        open = "graphicsPanel"
-    }, {
+        open = "interfaceActionbars"
+    }, --[[ {
         text = "Control Buttons",
         open = "graphicsPanel"
-    }}
+    } ]]
+    }
 }, {
     text = "Graphics",
     icon = "/images/icons/icon_graphics",
     open = "graphicsPanel",
     subCategories = {{
         text = "Effects",
-        open = "consolePanel"
+        open = "graphicsEffectsPanel"
     }}
 }, {
     text = "Sound",
     icon = "/images/icons/icon_sound",
-    open = "graphicsPanel",
-    subCategories = {{
+    open = "soundPanel",
+--[[     subCategories = {{
         text = "Battle Sounds",
         open = "consolePanel"
     }, {
         text = "UI Sounds",
         open = "graphicsPanel"
-    }}
+    }} ]]
 }, {
     text = "Misc.",
     icon = "/images/icons/icon_misc",
-    open = "graphicsPanel",
-    subCategories = {{
+    open = "misc",
+    subCategories = {--[[ {
         text = "GamePlay",
         open = "consolePanel"
-    }, {
+    },  {
         text = "Screenshots",
         open = "graphicsPanel"
-    }, {
+    }, ]]{
         text = "Help",
-        open = "graphicsPanel"
+        open = "miscHelp"
     }}
 } --[[     
 -- single category
@@ -113,9 +119,9 @@ local function toggleOption(key)
 end
 
 local function setupComboBox()
-    local crosshairCombo = panels.generalPanel:recursiveGetChildById('crosshair')
+    local crosshairCombo = panels.interface:recursiveGetChildById('crosshair')
     local antialiasingModeCombobox = panels.graphicsPanel:recursiveGetChildById('antialiasingMode')
-    local floorViewModeCombobox = panels.graphicsPanel:recursiveGetChildById('floorViewMode')
+    local floorViewModeCombobox = panels.graphicsEffectsPanel:recursiveGetChildById('floorViewMode')
 
     for k, v in pairs({ { 'Disabled', 'disabled' }, { 'Default', 'default' }, { 'Full', 'full' } }) do
         crosshairCombo:addOption(v[1], v[2])
@@ -370,7 +376,19 @@ function controller:onInit()
     panels.controlPanel = g_ui.loadUI('syles/controls/control',controller.ui.optionsTabContent)
     panels.consolePanel = g_ui.loadUI('syles/controls/console',controller.ui.optionsTabContent)
     panels.graphicsPanel = g_ui.loadUI('syles/graphics/graphics',controller.ui.optionsTabContent)
+    panels.graphicsEffectsPanel = g_ui.loadUI('syles/graphics/effects',controller.ui.optionsTabContent)
+    
+    panels.interface = g_ui.loadUI('syles/interface/interface',controller.ui.optionsTabContent)
+    panels.interfaceConsole = g_ui.loadUI('syles/interface/console',controller.ui.optionsTabContent)
+    panels.interfaceHUD = g_ui.loadUI('syles/interface/HUD',controller.ui.optionsTabContent)
+    panels.interfaceActionbars = g_ui.loadUI('syles/interface/actionbars',controller.ui.optionsTabContent)
+    
     panels.soundPanel = g_ui.loadUI('syles/sound/audio',controller.ui.optionsTabContent)
+    
+    panels.misc = g_ui.loadUI('syles/misc/misc',controller.ui.optionsTabContent)
+    panels.miscHelp = g_ui.loadUI('syles/misc/help',controller.ui.optionsTabContent)
+    
+   
     self.ui:hide()
 
     configureCharacterCategories()
@@ -482,70 +500,109 @@ end
 function addButton(name, func, icon)
     --controller.ui.optionsTabBar:addButton(name, func, icon)
 end
+-- Function to create a new category
+function createCategory(text, icon, openPanel, subCategories)
+    local newCategory = {
+        text = text,
+        icon = icon,
+        open = type(openPanel) == "string" and openPanel or getPanelName(openPanel),
+        subCategories = subCategories
+    }
+    table.insert(buttons, newCategory)
+    if type(openPanel) ~= "string" then
+        panels[getPanelName(openPanel)] = openPanel
+    end
+    configureCharacterCategories()  -- Rebuild the UI
+end
 
-local function findCategory(categoryText)
+-- Function to remove a category or subcategory
+function removeCategory(categoryText, subcategoryText)
     for i, category in ipairs(buttons) do
         if category.text == categoryText then
-            return category, i
+            if subcategoryText then
+                -- Remove subcategory
+                if category.subCategories then
+                    for j, subcategory in ipairs(category.subCategories) do
+                        if subcategory.text == subcategoryText then
+                            panels[subcategory.open] = nil  -- Remove from panels table
+                            table.remove(category.subCategories, j)
+                            break
+                        end
+                    end
+                end
+            else
+                -- Remove entire category
+                panels[category.open] = nil  -- Remove from panels table
+                if category.subCategories then
+                    for _, subcategory in ipairs(category.subCategories) do
+                        panels[subcategory.open] = nil  -- Remove subcategory panels
+                    end
+                end
+                table.remove(buttons, i)
+            end
+            configureCharacterCategories()  -- Rebuild the UI
+            return
         end
     end
-    return nil
 end
 
-local function findSubcategory(category, subcategoryText)
-    for i, subcategory in ipairs(category.subCategories or {}) do
-        if subcategory.text == subcategoryText then
-            return subcategory, i
+-- Function to remove a button from a category
+function removeButton(categoryText, buttonText)
+    for _, category in ipairs(buttons) do
+        if category.text == categoryText then
+            if category.subCategories then
+                for i, subcategory in ipairs(category.subCategories) do
+                    if subcategory.text == buttonText then
+                        panels[subcategory.open] = nil  -- Remove from panels table
+                        table.remove(category.subCategories, i)
+                        configureCharacterCategories()  -- Rebuild the UI
+                        return
+                    end
+                end
+            end
         end
     end
-    return nil
 end
 
-function addCategory(newCategory)
-    table.insert(buttons, newCategory)
-    configureCharacterCategories()
-end
+-- Function to add a button to a category
+function addButton(categoryText, buttonText, openPanel)
 
-function removeCategory(categoryText)
-    local _, index = findCategory(categoryText)
-    if index then
-        table.remove(buttons, index)
-        configureCharacterCategories()
-    else
-        print("Category not found: " .. categoryText)
-    end
-end
 
-function removeButtonFromCategory(categoryText, buttonText)
-    local category = findCategory(categoryText)
-    if category then
-        local _, index = findSubcategory(category, buttonText)
-        if index then
-            table.remove(category.subCategories, index)
-            configureCharacterCategories()
-        else
-            print("Subcategory not found: " .. buttonText)
+    for _, category in ipairs(buttons) do
+        if category.text == categoryText then
+            if not category.subCategories then
+                category.subCategories = {}
+            end
+            local panelName = type(openPanel) == "string" and openPanel or getPanelName(openPanel)
+            table.insert(category.subCategories, {
+                text = buttonText,
+                open = panelName
+            })
+            if type(openPanel) ~= "string" then
+                panels[panelName] = openPanel
+            end
+
+            configureCharacterCategories()  -- Rebuild the UI
+            return
         end
-    else
-        print("Category not found: " .. categoryText)
     end
+    
 end
 
-function addButtonToCategory(categoryText, newButton)
-    local category = findCategory(categoryText)
-    if category then
-        table.insert(category.subCategories or {}, newButton)
-        configureCharacterCategories()
-    else
-        print("Category not found: " .. categoryText)
+-- Helper function to get a unique panel name
+function getPanelName(panel)
+    for name, p in pairs(panels) do
+        if p == panel then
+            return name
+        end
     end
+    return "panel_" .. tostring(panel):match("userdata: 0x(%x+)")
 end
 
 function addSubcategoryToCategory(categoryText, newSubcategory)
     addButtonToCategory(categoryText, newSubcategory)
+
 end
-
-
 --[[ modules.client_options.addCategory({
     text = "Sound2",
     icon = "/images/icons/icon_sound",
@@ -567,3 +624,7 @@ modules.client_options.addButtonToCategory("Sound", { text = "Microphone", open 
 
 -- Añadir una nueva subcategoría a una categoría existente
 modules.client_options.addSubcategoryToCategory("Controls", { text = "Gamepad", open = "graphicsPanel" })-- ]]
+
+function getPanel()
+    return controller.ui.optionsTabContent
+end

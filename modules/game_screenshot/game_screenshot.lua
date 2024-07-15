@@ -71,8 +71,7 @@ function screenshotController:onGameStart()
     if g_game.getClientVersion() < 1180 then
         return
     end
-    optionPanel = g_ui.loadUI('game_screenshot')
-    modules.client_options.addTab('Screenshot', optionPanel, '/images/icons/icon_misc')
+    optionPanel = g_ui.loadUI('game_screenshot',modules.client_options:getPanel())
 
     for _, screenshotEvent in ipairs(AutoScreenshotEvents) do
         local label = g_ui.createWidget("ScreenshotType", optionPanel.allCheckBox)
@@ -94,7 +93,8 @@ function screenshotController:onGameStart()
         onTakeScreenshot = onScreenShot
     })
     optionPanel:recursiveGetChildById("keepBlacklog"):disable() -- no compatibility 11/07/24
-    
+   
+    modules.client_options.addButton("Misc.", "Screenshot", optionPanel)
 end
 
 function screenshotController:onGameEnd()

@@ -1,17 +1,15 @@
 UIWidget
   anchors.fill: parent
   visible: false
-
   SmallReversedQtPanel
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: parent.top
     height: 22
-  
-    OptionCheckBoxMarked
-      id: showPing
-      !text: tr('Show connection ping')
-      !tooltip: tr('Display connection speed to the server (milliseconds)')
+
+    OptionCheckBox
+      id: classicControl
+      !text: tr('Classic control')
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -21,8 +19,8 @@ UIWidget
     height: 22
   
     OptionCheckBox
-      id: showFps
-      !text: tr('Show frame rate')
+      id: autoChaseOverride
+      !text: tr('Allow auto chase override')
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -32,107 +30,8 @@ UIWidget
     height: 22
   
     OptionCheckBox
-      id: showLeftPanel
-      !text: tr('Show left panel')
-
-  SmallReversedQtPanel
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: prev.bottom
-    margin-top: 7
-    height: 22
-  
-    OptionCheckBox
-      id: showRightExtraPanel
-      !text: tr('Show an extra right panel')
-
-  SmallReversedQtPanel
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: prev.bottom
-    margin-top: 7
-    height: 22
-
-    OptionCheckBox
-      id: showActionbar
-      !text: tr('Show action bar')
-
-  SmallReversedQtPanel
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: prev.bottom
-    margin-top: 7
-    height: 22
-
-    OptionCheckBox
-      id: showSpellGroupCooldowns
-      !text: tr('Show spell group cooldowns')
-
-  SmallReversedQtPanel
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: prev.bottom
-    margin-top: 7
-    height: 22
-  
-    OptionCheckBox
-      id: openMaximized
-      !text: tr('Open containers maximized')
-
-  SmallReversedQtPanel
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: prev.bottom
-    margin-top: 7
-    height: 22
-  
-    OptionCheckBox
-      id: displayNames
-      !text: tr('Display creature names')
-
-  SmallReversedQtPanel
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: prev.bottom
-    margin-top: 7
-    height: 22
-  
-    OptionCheckBox
-      id: displayHealth
-      !text: tr('Display creature health bars')
-
-  SmallReversedQtPanel
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: prev.bottom
-    margin-top: 7
-    height: 22
-  
-    OptionCheckBox
-      id: displayMana
-      !text: tr('Display player mana bar')
-
-  SmallReversedQtPanel
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: prev.bottom
-    margin-top: 7
-    height: 22
-  
-    OptionCheckBox
-      id: displayText
-      !text: tr('Display text messages')
-
-  SmallReversedQtPanel
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: prev.bottom
-    margin-top: 7
-    height: 22
-  
-    OptionCheckBox
-      id: enableHighlightMouseTarget
-      !text: tr('Highlight mouse target')
+      id: moveStack
+      !text: tr('Move stacks directly')
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -142,9 +41,9 @@ UIWidget
     height: 22
   
     OptionCheckBoxMarked
-      id: asyncTxtLoading
-      !text: tr('Async texture loading')
-      !tooltip: tr('This option makes textures load asynchronously and uses less RAM.')
+      id: smartWalk
+      !text: tr('Enable smart walking')
+      !tooltip: tr('Will detect when to use diagonal step based on the\nkeys you are pressing')
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -154,28 +53,18 @@ UIWidget
     height: 22
   
     OptionCheckBoxMarked
-      id: drawEffectOnTop
-      !text: tr('Draw Effect On Top')
-      !tooltip: tr('Draw effect after drawing the entire floor.')
+      id: preciseControl
+      !text: tr('Enable precise control')
+      !tooltip: tr('You will have more precision over the character walking,\nbut it can feel more abrupt or unnatural')
+      @onCheckChange: g_game.setScheduleLastWalk(not self:isChecked())
 
-  SmallReversedQtPanel
-    anchors.left: parent.left
-    anchors.right: parent.right
+
+  QtButton
+    id: hotkeysButton
+    !text: tr('Hotkeys Manager')
+    @onClick: modules.game_hotkeys.show()
     anchors.top: prev.bottom
-    margin-top: 7
-    height: 32
-  
-    Label
-      !text: 'Crosshair:'
-      anchors.left: parent.left
-      margin-left: 18
-      color: #c0c0c0ff
-      anchors.verticalCenter: parent.verticalCenter
+    anchors.left: parent.left
+    margin-top: 12
 
-    QtComboBox
-      id: crosshair
-      width: 120
-      margin-left: 10
-      anchors.verticalCenter: prev.verticalCenter
-      anchors.left: prev.right
-      mouse-scroll: false
+    size: 120 20

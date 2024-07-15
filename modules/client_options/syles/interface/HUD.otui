@@ -5,11 +5,12 @@ UIWidget
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: parent.top
+    margin-top: 7
     height: 22
-
+  
     OptionCheckBox
-      id: showInfoMessagesInConsole
-      !text: tr('Show info messages')
+      id: displayNames
+      !text: tr('Display creature names')
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -19,8 +20,8 @@ UIWidget
     height: 22
   
     OptionCheckBox
-      id: showEventMessagesInConsole
-      !text: tr('Show event messages')
+      id: displayHealth
+      !text: tr('Display creature health bars')
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -30,8 +31,21 @@ UIWidget
     height: 22
   
     OptionCheckBox
-      id: showStatusMessagesInConsole
-      !text: tr('Show status messages')
+      id: displayMana
+      !text: tr('Display player mana bar')
+      
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    height: 22
+    margin-top: 7
+    OptionScaleScroll
+      id: creatureInformationScale
+      anchors.fill: parent
+      &minimumScrollValue: 1
+      &maximumScrollValue: 9
+      &scrollSize: 21
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -39,10 +53,13 @@ UIWidget
     anchors.top: prev.bottom
     margin-top: 7
     height: 22
-  
-    OptionCheckBox
-      id: showOthersStatusMessagesInConsole
-      !text: tr('Show others status messages in console')
+
+    OptionScaleScroll
+      id: staticTextScale
+      anchors.fill: parent
+      &minimumScrollValue: 1
+      &maximumScrollValue: 9
+      &scrollSize: 21
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -50,10 +67,13 @@ UIWidget
     anchors.top: prev.bottom
     margin-top: 7
     height: 22
-  
-    OptionCheckBox
-      id: showTimestampsInConsole
-      !text: tr('Show timestamps')
+
+    OptionScaleScroll
+      id: animatedTextScale
+      anchors.fill: parent
+      &minimumScrollValue: 1
+      &maximumScrollValue: 9
+      &scrollSize: 21
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -61,10 +81,13 @@ UIWidget
     anchors.top: prev.bottom
     margin-top: 7
     height: 22
-  
-    OptionCheckBox
-      id: showLevelsInConsole
-      !text: tr('Show levels')
+
+    OptionScaleScroll
+      id: setEffectAlphaScroll
+      anchors.fill: parent
+      &minimumScrollValue: 10
+      &maximumScrollValue: 100
+      &scrollSize: 21
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -72,19 +95,10 @@ UIWidget
     anchors.top: prev.bottom
     margin-top: 7
     height: 22
-  
-    OptionCheckBox
-      id: showPrivateMessagesInConsole
-      !text: tr('Show private messages')
 
-  SmallReversedQtPanel
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: prev.bottom
-    margin-top: 7
-    height: 22
-  
-    OptionCheckBox
-      id: showPrivateMessagesOnScreen
-      !text: tr('Show private messages on screen')
-
+    OptionScaleScroll
+      id: setMissileAlphaScroll
+      anchors.fill: parent
+      &minimumScrollValue: 10
+      &maximumScrollValue: 100
+      &scrollSize: 21
