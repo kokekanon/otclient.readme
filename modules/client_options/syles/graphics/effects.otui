@@ -72,7 +72,7 @@ UIWidget
     margin-top: 7
     height: 22
 
-    OptionCheckBox
+    OptionCheckBoxMarked
       id: drawEffectOnTop
       !text: tr('Draw Effect On Top')
       !tooltip: tr('Draw effect after drawing the entire floor.')

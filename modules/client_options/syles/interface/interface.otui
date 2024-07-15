@@ -52,9 +52,10 @@ UIWidget
     height: 22
     margin-top: 5
 
-    OptionCheckBox
+    OptionCheckBoxMarked
       id: showSpellGroupCooldowns
       !text: tr('Show spell group cooldowns')
+      !tooltip: tr('Can be enabled only in version 8.7x or higher')
 
   SmallReversedQtPanel
     anchors.left: parent.left
