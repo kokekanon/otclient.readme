@@ -2,8 +2,6 @@ local options = dofile("data_options")
 
 local panels = {
     generalPanel = nil,
-    controlPanel = nil,
-    consolePanel = nil,
     graphicsPanel = nil,
     soundPanel = nil,
     gameMapPanel = nil,
@@ -24,10 +22,10 @@ local buttons = {{
         open = "generalPanel"
     }, {
         text = "Action Bar Hotkeys",
-        open = "controlPanel"
+        open = "Action_Bar_Hotkeys"
     }, {
         text = "Custom Hotkeys",
-        open = "controlPanel"
+        open = "Custom_Hotkeys"
     }} ]]
 }, {
     text = "Interface",
@@ -54,10 +52,10 @@ local buttons = {{
     open = "soundPanel"
     --[[     subCategories = {{
         text = "Battle Sounds",
-        open = "consolePanel"
+        open = "Battle_Sounds"
     }, {
         text = "UI Sounds",
-        open = "graphicsPanel"
+        open = "UI_Sounds"
     }} ]]
 }, {
     text = "Misc.",
@@ -65,10 +63,10 @@ local buttons = {{
     open = "misc",
     subCategories = { --[[ {
         text = "GamePlay",
-        open = "consolePanel"
+        open = "GamePlay"
     },  {
         text = "Screenshots",
-        open = "graphicsPanel"
+        open = "Screenshots"
     }, ]] {
         text = "Help",
         open = "miscHelp"
@@ -175,9 +173,6 @@ function controller:onInit()
 
     panels.generalPanel = g_ui.loadUI('syles/controls/general',controller.ui.optionsTabContent)
 
-    panels.controlPanel = g_ui.loadUI('syles/controls/control',controller.ui.optionsTabContent)
-    panels.consolePanel = g_ui.loadUI('syles/controls/console',controller.ui.optionsTabContent)
-
     panels.graphicsPanel = g_ui.loadUI('syles/graphics/graphics',controller.ui.optionsTabContent)
     panels.graphicsEffectsPanel = g_ui.loadUI('syles/graphics/effects',controller.ui.optionsTabContent)
     
@@ -199,8 +194,9 @@ end
 function controller:onTerminate()
     extraWidgets.optionsButton:destroy()
     extraWidgets.audioButton:destroy()
-    panels = nil
-    extraWidgets = nil
+    panels = {}
+    extraWidgets = {}
+    buttons = {}
 end
 
 function setOption(key, value, force)
@@ -216,7 +212,6 @@ function setOption(key, value, force)
     if option.action then
         option.action(value, options, controller, panels, extraWidgets)
     end
-
 
     -- change value for keybind updates
     for _, panel in pairs(panels) do

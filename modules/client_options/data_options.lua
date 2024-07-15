@@ -158,13 +158,13 @@ return {
     turnDelay                         = {
         value = 50,
         action = function(value, options, controller, panels, extraWidgets)
-            panels.controlPanel:recursiveGetChildById('turnDelay'):setText(string.format('Turn delay: %sms', value))
+            panels.generalPanel:recursiveGetChildById('turnDelay'):setText(string.format('Turn delay: %sms', value))
         end
     },
     hotkeyDelay                       = {
         value = 70,
         action = function(value, options, controller, panels, extraWidgets)
-            panels.controlPanel:recursiveGetChildById('hotkeyDelay'):setText(string.format('Hotkey delay: %sms', value))
+            panels.generalPanel:recursiveGetChildById('hotkeyDelay'):setText(string.format('Hotkey delay: %sms', value))
         end
     },
     crosshair                         = {
@@ -332,30 +332,36 @@ return {
         value = 100,
         action = function(value, options, controller, panels, extraWidgets)
             g_client.setEffectAlpha(value / 100)
-            panels.interfaceHUD:recursiveGetChildById('setEffectAlphaScroll'):setText(tr('Opacity Effect: %s%%', value))
+            panels.graphicsEffectsPanel:recursiveGetChildById('setEffectAlphaScroll'):setText(tr('Opacity Effect: %s%%', value))
         end
     },
     setMissileAlphaScroll             = {
         value = 100,
         action = function(value, options, controller, panels, extraWidgets)
             g_client.setMissileAlpha(value / 100)
-            panels.interfaceHUD:recursiveGetChildById('setMissileAlphaScroll'):setText(tr('Opacity Missile: %s%%', value))
+            panels.graphicsEffectsPanel:recursiveGetChildById('setMissileAlphaScroll'):setText(tr('Opacity Missile: %s%%', value))
         end
     },
     distFromCenScrollbar              = {
         value = 0,
         action = function(value, options, controller, panels, extraWidgets)
             local bar = modules.game_healthcircle.optionPanel:recursiveGetChildById('distFromCenScrollbar')
-            bar:setText(tr('Distance: %s', bar:recursiveGetChildById('valueBar'):getValue()))
-            modules.game_healthcircle.setDistanceFromCenter(bar:recursiveGetChildById('valueBar'):getValue())
+            if bar then
+                bar:setText(tr('Distance: %s', bar:recursiveGetChildById('valueBar'):getValue()))
+                modules.game_healthcircle.setDistanceFromCenter(bar:recursiveGetChildById('valueBar'):getValue())
+            end
+           
         end
     },
     opacityScrollbar                  = {
         value = 0,
         action = function(value, options, controller, panels, extraWidgets)
             local bar = modules.game_healthcircle.optionPanel:recursiveGetChildById('opacityScrollbar')
+           if bar then
             bar:setText(tr('Opacity: %s', bar:recursiveGetChildById('valueBar'):getValue() / 100))
             modules.game_healthcircle.setCircleOpacity(bar:recursiveGetChildById('valueBar'):getValue() / 100)
+           end
+           
         end
     }
 }

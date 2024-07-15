@@ -7,6 +7,17 @@ UIWidget
     anchors.top: parent.top
     height: 22
 
+    OptionCheckBoxMarked
+      id: showPing
+      !text: tr('Show connection ping')
+      !tooltip: tr('Display connection speed to the server (milliseconds)')
+
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    height: 22
+    margin-top: 7
     OptionCheckBox
       id: classicControl
       !text: tr('Classic control')
@@ -58,6 +69,64 @@ UIWidget
       !tooltip: tr('You will have more precision over the character walking,\nbut it can feel more abrupt or unnatural')
       @onCheckChange: g_game.setScheduleLastWalk(not self:isChecked())
 
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 7
+    height: 22
+  
+    OptionCheckBox
+      id: openMaximized
+      !text: tr('Open containers maximized')
+
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 7
+    height: 22
+  
+    OptionCheckBox
+      id: displayText
+      !text: tr('Display text messages')
+      
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 7
+    height: 22
+
+    OptionScaleScroll
+      id: turnDelay
+      !text: tr('Turn delay: 30ms')
+      anchors.fill: parent
+      &minimumScrollValue: 30
+      &maximumScrollValue: 250
+      &scrollSize: 21
+      @onSetup: |
+        local value = modules.client_options.getOption('turnDelay')
+        self:setText(tr('Turn delay: %dms', value))
+
+  SmallReversedQtPanel
+    id: hotkeyDelay_label
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 7
+    height: 22
+
+    OptionScaleScroll
+      id: hotkeyDelay
+      !text: tr('Hotkey delay: 30ms')
+      anchors.fill: parent
+      &minimumScrollValue: 30
+      &maximumScrollValue: 250
+      &scrollSize: 21
+      @onSetup: |
+        local value = modules.client_options.getOption('hotkeyDelay')
+        self:setText(tr('Hotkey delay: %dms', value))
 
   QtButton
     id: hotkeysButton
@@ -68,3 +137,4 @@ UIWidget
     margin-top: 12
 
     size: 120 20
+
