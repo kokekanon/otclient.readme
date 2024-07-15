@@ -174,8 +174,10 @@ function controller:onInit()
         '/images/topbuttons/button_mute_up', function() toggleOption('enableAudio') end)
 
     panels.generalPanel = g_ui.loadUI('syles/controls/general',controller.ui.optionsTabContent)
+
     panels.controlPanel = g_ui.loadUI('syles/controls/control',controller.ui.optionsTabContent)
     panels.consolePanel = g_ui.loadUI('syles/controls/console',controller.ui.optionsTabContent)
+
     panels.graphicsPanel = g_ui.loadUI('syles/graphics/graphics',controller.ui.optionsTabContent)
     panels.graphicsEffectsPanel = g_ui.loadUI('syles/graphics/effects',controller.ui.optionsTabContent)
     
@@ -183,12 +185,10 @@ function controller:onInit()
     panels.interfaceConsole = g_ui.loadUI('syles/interface/console',controller.ui.optionsTabContent)
     panels.interfaceHUD = g_ui.loadUI('syles/interface/HUD',controller.ui.optionsTabContent)
 
-    
     panels.soundPanel = g_ui.loadUI('syles/sound/audio',controller.ui.optionsTabContent)
     
     panels.misc = g_ui.loadUI('syles/misc/misc',controller.ui.optionsTabContent)
     panels.miscHelp = g_ui.loadUI('syles/misc/help',controller.ui.optionsTabContent)
-    
    
     self.ui:hide()
 
@@ -290,7 +290,6 @@ end
 function removeTab(v)
     print("to prevent the error use Ex   modules.client_options.addButton('Interface', 'HP/MP Circle', optionPanel)")
 end
-
 
 local function toggleSubCategories(parent, isOpen)
     for subId, _ in ipairs(parent.subCategories) do
@@ -409,39 +408,34 @@ function configureCharacterCategories()
         function widget.Button.onClick()
             local parent = widget
             local oldOpen = controller.ui.openedCategory
-        
-            -- Cerrar la categoría antigua si existe y es diferente de la actual
+
             if oldOpen and oldOpen ~= parent then
-                if  oldOpen.Button then
+                if oldOpen.Button then
                     oldOpen.Button:setChecked(false)
                     oldOpen.Button.Arrow:setImageSource("/images/ui/icon-arrow7x7-down")
                 end
-    
+
                 close(oldOpen)
 
             end
-        
-            -- Manejar subcategorías si existen
+
             if parent.subCategoriesSize then
                 parent.closedSize = parent.closedSize or parent:getHeight() / (parent.subCategoriesSize + 1) + 15
                 parent.openedSize = parent.openedSize or parent:getHeight() * (parent.subCategoriesSize + 1) - 6
-        
+
                 if not parent.opened then
                     open(parent)
                 end
             end
-        
-            -- Actualizar la interfaz para la categoría actual
+
             widget.Button:setChecked(true)
             widget.Button.Arrow:setImageSource("/images/ui/icon-arrow7x7-right")
             widget.Button.Arrow:setVisible(true)
-        
-            -- Ocultar la opción seleccionada anterior
+
             if controller.ui.selectedOption then
                 controller.ui.selectedOption:hide()
             end
-        
-            -- Mostrar el panel correspondiente
+
             local panelToShow = panels[parent.open]
             if panelToShow then
                 closeCharacterButtons()
@@ -451,8 +445,7 @@ function configureCharacterCategories()
             else
                 print("Error: panelToShow is nil or does not exist in panels")
             end
-        
-            -- Actualizar la categoría abierta
+
             controller.ui.openedCategory = parent
         end
     end
@@ -473,7 +466,6 @@ function closeCharacterButtons()
     end
 end
 
--- Function to create a new category
 function createCategory(text, icon, openPanel, subCategories)
     local newCategory = {
         text = text,
@@ -485,50 +477,46 @@ function createCategory(text, icon, openPanel, subCategories)
     if type(openPanel) ~= "string" then
         panels[getPanelName(openPanel)] = openPanel
     end
-    configureCharacterCategories()  -- Rebuild the UI
+    configureCharacterCategories()
 end
 
--- Function to remove a category or subcategory
 function removeCategory(categoryText, subcategoryText)
     for i, category in ipairs(buttons) do
         if category.text == categoryText then
             if subcategoryText then
-                -- Remove subcategory
                 if category.subCategories then
                     for j, subcategory in ipairs(category.subCategories) do
                         if subcategory.text == subcategoryText then
-                            panels[subcategory.open] = nil  -- Remove from panels table
+                            panels[subcategory.open] = nil
                             table.remove(category.subCategories, j)
                             break
                         end
                     end
                 end
             else
-                -- Remove entire category
-                panels[category.open] = nil  -- Remove from panels table
+                panels[category.open] = nil
                 if category.subCategories then
                     for _, subcategory in ipairs(category.subCategories) do
-                        panels[subcategory.open] = nil  -- Remove subcategory panels
+                        panels[subcategory.open] = nil
                     end
                 end
                 table.remove(buttons, i)
             end
-            configureCharacterCategories()  -- Rebuild the UI
+            configureCharacterCategories()
             return
         end
     end
 end
 
--- Function to remove a button from a category
 function removeButton(categoryText, buttonText)
     for _, category in ipairs(buttons) do
         if category.text == categoryText then
             if category.subCategories then
                 for i, subcategory in ipairs(category.subCategories) do
                     if subcategory.text == buttonText then
-                        panels[subcategory.open] = nil  -- Remove from panels table
+                        panels[subcategory.open] = nil
                         table.remove(category.subCategories, i)
-                        configureCharacterCategories()  -- Rebuild the UI
+                        configureCharacterCategories()
                         return
                     end
                 end
@@ -537,10 +525,7 @@ function removeButton(categoryText, buttonText)
     end
 end
 
--- Function to add a button to a category
 function addButton(categoryText, buttonText, openPanel)
-
-
     for _, category in ipairs(buttons) do
         if category.text == categoryText then
             if not category.subCategories then
@@ -554,15 +539,12 @@ function addButton(categoryText, buttonText, openPanel)
             if type(openPanel) ~= "string" then
                 panels[panelName] = openPanel
             end
-
-            configureCharacterCategories()  -- Rebuild the UI
+            configureCharacterCategories()
             return
         end
     end
-    
 end
 
--- Helper function to get a unique panel name
 function getPanelName(panel)
     for name, p in pairs(panels) do
         if p == panel then
@@ -574,29 +556,7 @@ end
 
 function addSubcategoryToCategory(categoryText, newSubcategory)
     addButtonToCategory(categoryText, newSubcategory)
-
 end
---[[ modules.client_options.addCategory({
-    text = "Sound2",
-    icon = "/images/icons/icon_sound",
-    open = "generalPanel",
-    subCategories = {
-        { text = "Volume3", open = "controlPanel" },
-        { text = "Effects3", open = "graphicsPanel" }
-    }
-})
-
--- Remover una categoría existente
-modules.client_options.removeCategory("Graphics")--
-
--- Remover un botón específico de una categoría
-modules.client_options.removeButtonFromCategory("Controls", "General Hotkeys")--
-
--- Añadir un nuevo botón a una categoría existente
-modules.client_options.addButtonToCategory("Sound", { text = "Microphone", open = "consolePanel" })--
-
--- Añadir una nueva subcategoría a una categoría existente
-modules.client_options.addSubcategoryToCategory("Controls", { text = "Gamepad", open = "graphicsPanel" })-- ]]
 
 function getPanel()
     return controller.ui.optionsTabContent
