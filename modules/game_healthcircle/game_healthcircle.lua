@@ -595,6 +595,6 @@ function destroyOptionsModule()
     chooseStatsBarDimension = nil
     chooseStatsBarPlacement = nil
 
-    modules.client_options.removeTab('HP/MP Circle')
+    modules.client_options.removeButton("Interface", "HP/MP Circle")
     optionPanel = nil
 end
