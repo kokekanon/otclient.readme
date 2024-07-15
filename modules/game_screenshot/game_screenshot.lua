@@ -43,7 +43,6 @@ local AutoScreenshotEvents = {
 -- LuaFormatter on
 
 -- @ widget
-local screenshotScheduleEvent = nil
 local optionPanel = nil
 -- @
 -- @ variables
@@ -61,10 +60,7 @@ end
 function screenshotController:onTerminate()
     destroyOptionsModule()
 
-    if screenshotScheduleEvent then
-        removeEvent(screenshotScheduleEvent)
-        screenshotScheduleEvent = nil
-    end
+
 end
 
 function screenshotController:onGameStart()
@@ -102,10 +98,7 @@ function screenshotController:onGameEnd()
         g_settings.set("onlyCaptureGameWindow",optionPanel:recursiveGetChildById("onlyCaptureGameWindow"):isChecked())
         destroyOptionsModule()
     end
-    if screenshotScheduleEvent then
-        removeEvent(screenshotScheduleEvent)
-        screenshotScheduleEvent = nil
-    end
+
     for _, screenshotEvent in ipairs(AutoScreenshotEvents) do
         local labelScreenshotEvent = screenshotEvent.label:gsub("%s+", "")
         g_settings.set(labelScreenshotEvent, screenshotEvent.currentBoolean)
@@ -178,18 +171,14 @@ function takeScreenshot(name)
         return
     end
 
-    if screenshotScheduleEvent then
-        removeEvent(screenshotScheduleEvent)
-        screenshotScheduleEvent = nil
-    end
 
-    screenshotScheduleEvent = scheduleEvent(function()
+    screenshotController:scheduleEvent(function()
         if  optionPanel:recursiveGetChildById("onlyCaptureGameWindow"):isChecked() then
             g_app.doMapScreenshot(name)
         else
             g_app.doScreenshot(name)
         end
-    end, 50)
+    end, 50, 'screenshotScheduleEvent')
 end
 
 function OpenFolder()
