@@ -111,23 +111,33 @@ OptionScaleScrollMarked < Label
     @onValueChange: |
       modules.client_options.setOption(self:getParent():getId(), self:getValue())
 
-MiniQtWindow
+MainWindow
   id: optionsWindow
-  size: 685 530
+  size: 686 534
   anchors.centerIn: parent
   visible: false
-  draggable: false
+  draggable: true
+  icon-rect: 4 4 16 16
 
+  image-source: /images/ui/window_new
+  image-border: 4
+  image-border-top: 16
+  image-border-bottom: 4
+  &minimizedHeight: 17
+  draggable: true
+
+  $on:
+    image-border-bottom: 2
   @onEnter: modules.client_options.hide()
   @onEscape: modules.client_options.hide()
 
   Label
     !text: tr('Options')
     font: verdana-11px-antialised
-    text-offset: 0 2
+    margin-top: -35
     text-align: top
     anchors.top: parent.top
-    anchors.bottom: parent.bottom
+
     anchors.left: parent.left
     anchors.right: parent.right
     opacity: 0.5
@@ -136,8 +146,8 @@ MiniQtWindow
     id: optionsTabBar
     anchors.top: parent.top
     anchors.left: parent.left
-    margin-left: 16
-    margin-top: 29
+    margin-left: 1
+    margin-top: -10
     image-border: 3
     image-source: /images/ui/2pixel_up_frame_borderimage_dark
     size: 128 453
@@ -149,7 +159,7 @@ MiniQtWindow
     anchors.right: parent.right
     anchors.bottom: optionsTabBar.bottom
     margin-left: 10
-    margin-right: 10
+
 
   HorizontalSeparator
     anchors.left: optionsTabBar.left
@@ -163,7 +173,7 @@ MiniQtWindow
     !text: tr('Ok')
     size: 64 20
     anchors.right: parent.right
-    anchors.bottom: parent.bottom
-    margin-bottom: 10
+    anchors.top: prev.bottom
+    margin-top: 10
     margin-right: 10
     @onClick: modules.client_options.hide()
