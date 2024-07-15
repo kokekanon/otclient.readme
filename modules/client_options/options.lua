@@ -18,8 +18,8 @@ local buttons = {{
 
     text = "Controls",
     icon = "/images/icons/icon_controls",
-    open = "generalPanel",
---[[     subCategories = {{
+    open = "generalPanel"
+    --[[     subCategories = {{
         text = "General Hotkeys",
         open = "generalPanel"
     }, {
@@ -39,8 +39,7 @@ local buttons = {{
     }, {
         text = "Console",
         open = "interfaceConsole"
-    }, 
-    }
+    }}
 }, {
     text = "Graphics",
     icon = "/images/icons/icon_graphics",
@@ -52,8 +51,8 @@ local buttons = {{
 }, {
     text = "Sound",
     icon = "/images/icons/icon_sound",
-    open = "soundPanel",
---[[     subCategories = {{
+    open = "soundPanel"
+    --[[     subCategories = {{
         text = "Battle Sounds",
         open = "consolePanel"
     }, {
@@ -64,24 +63,18 @@ local buttons = {{
     text = "Misc.",
     icon = "/images/icons/icon_misc",
     open = "misc",
-    subCategories = {--[[ {
+    subCategories = { --[[ {
         text = "GamePlay",
         open = "consolePanel"
     },  {
         text = "Screenshots",
         open = "graphicsPanel"
-    }, ]]{
+    }, ]] {
         text = "Help",
         open = "miscHelp"
     }}
-} --[[     
--- single category
-{
-        text = "Console",
-        icon = "/mods/game_cyclopedia/images/character_icons/icon-character-battleresults-recentpvpkills",
-        open = "graphicsPanel"
-    },
- ]] }
+}}
+
 -- LuaFormatter on
 local extraWidgets = {
     audioButton = nil,
@@ -159,6 +152,8 @@ local function setup()
         end
     end
 end
+
+
 controller = Controller:new()
 controller:setUI('options')
 controller:bindKeyDown('Ctrl+Shift+F', function() toggleOption('fullscreen') end)
@@ -289,11 +284,11 @@ function toggle()
 end
 
 function addTab(name, panel, icon)
-    print("prevent error, use optionPanel = g_ui.loadUI('option_healthcircle',modules.client_options:getPanel()) ")
+    print("to prevent the error use Ex = g_ui.loadUI('option_healthcircle',modules.client_options:getPanel()) ")
 end
 
 function removeTab(v)
-    print("prevent error use     modules.client_options.addButton('Interface', 'HP/MP Circle', optionPanel)")
+    print("to prevent the error use Ex   modules.client_options.addButton('Interface', 'HP/MP Circle', optionPanel)")
 end
 
 
