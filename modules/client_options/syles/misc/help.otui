@@ -9,7 +9,8 @@ UIWidget
 
     QtButton
       !text: tr('Wiki')
-      
+      anchors.left: parent.left
+      anchors.top: parent.top
       size: 130 20
       margin-bottom: 10
       margin-right: 10
@@ -21,6 +22,7 @@ UIWidget
       margin-top: 5
      
       anchors.top: prev.bottom
+      anchors.left: parent.left
 
       @onClick: g_platform.openUrl("https://github.com/mehah/otclient/wiki")
 
@@ -36,5 +38,7 @@ UIWidget
       size: 130 20
       margin-bottom: 10
       margin-right: 10
+      anchors.left: parent.left
+      anchors.top: parent.top
       @onClick: g_platform.openUrl("https://github.com/mehah/otclient/wiki")
 

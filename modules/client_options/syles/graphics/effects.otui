@@ -5,7 +5,7 @@ UIWidget
   SmallReversedQtPanel
     anchors.left: parent.left
     anchors.right: parent.right
-    anchors.top: prev.bottom
+    anchors.top: parent.top
     margin-top: 7
     height: 60
   
