@@ -40,6 +40,7 @@
         vorbisfile.lib;
         pugixml.lib;
         zlib.lib;
+		Psapi.lib;
     </OTCLIENT_LIBDEPS>
 
     <OTCLIENT_LIBDEPS_D>
@@ -65,6 +66,7 @@
         pugixml.lib;
         zlibd.lib;
         openal32.lib;
+		Psapi.lib;
     </OTCLIENT_LIBDEPS_D>
   </PropertyGroup>
   <PropertyGroup>

@@ -75,6 +75,7 @@ public:
     bool openDir(std::string path, bool now = false);
     std::string getCPUName();
     double getTotalSystemMemory();
+    double getMemoryUsage();
     std::string getOSName();
     Device getDevice() { return m_device; }
     void setDevice(Device device) { m_device = device; }

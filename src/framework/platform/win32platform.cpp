@@ -200,6 +200,17 @@ double Platform::getTotalSystemMemory()
     GlobalMemoryStatusEx(&status);
     return status.ullTotalPhys;
 }
+#include <tchar.h>
+#include <Psapi.h>
+#include <iphlpapi.h>
+#include <tlhelp32.h>
+#include <windows.h>
+double Platform::getMemoryUsage()
+{
+    PROCESS_MEMORY_COUNTERS pmc;
+    GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
+    return pmc.WorkingSetSize / (1024.0 * 1024.0);
+}
 
 #ifndef PRODUCT_PROFESSIONAL
 #define PRODUCT_PROFESSIONAL    0x00000030
