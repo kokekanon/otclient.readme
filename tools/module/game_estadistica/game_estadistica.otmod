@@ -1,0 +1,9 @@
+Module
+  name: game_estadistica
+  description: game_estadistica
+  author: game_estadistica
+  website: https://github.com/mehah/otclient
+  sandboxed: true
+  scripts: [ game_estadistica ]
+  @onLoad: controllerFPS:init()
+  @onUnload: controllerFPS:terminate()
