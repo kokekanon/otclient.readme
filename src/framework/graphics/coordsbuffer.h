@@ -99,7 +99,10 @@ public:
 
     HardwareBuffer* getHardwareVertexCache() const { return m_vertexArray.getHardwareCache(); }
     HardwareBuffer* getHardwareTextureCoordCache() const { return m_textureCoordArray.getHardwareCache(); }
-
+    void addLine(const Point& start, const Point& end)
+    {
+        addRect(Rect(start, end));
+    }
 private:
     VertexArray m_vertexArray;
     VertexArray m_textureCoordArray;

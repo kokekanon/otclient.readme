@@ -172,6 +172,9 @@ protected:
         Rect dest{}, src{};
         Point a{}, b{}, c{};
         uint16_t intValue{ 0 };
+        CoordsBuffer* coordsBuffer;
+        uint64_t textHash;
+        bool shadow;
     };
 
     struct PoolState

@@ -3,7 +3,10 @@
 #include <framework/graphics/fontmanager.h>
 #include <framework/core/eventdispatcher.h>
 #include <framework/graphics/drawpool.h>
-
+#include <framework/graphics/drawpoolmanager.h>
+#include <framework/graphics/coordsbuffer.h>
+#include <framework/graphics/bitmapfont.h>
+#include <framework/graphics/drawpoolmanager.h>
 UIGraph::UIGraph()
 {
 }
@@ -39,15 +42,24 @@ void UIGraph::drawSelf(DrawPoolType drawPane)
     }
 
     if (elements > 0) {
-        //TODO: Adapt in the future
-        /*g_drawQueue->addLine(points, m_width, m_color);
-        if(!m_title.empty())
-            g_drawQueue->addText(m_font, m_title, dest, Fw::AlignTopCenter);
+        // Dibujar la línea
+        CoordsBufferPtr coordsBuffer = CoordsBufferPtr(new CoordsBuffer);
+        for (size_t i = 0; i < points.size() - 1; ++i) {
+            coordsBuffer->addLine(points[i], points[i + 1]);
+        }
+        g_drawPool.addTexturedCoordsBuffer(nullptr, coordsBuffer, m_color);
+
+        // Dibujar el título
+        if (!m_title.empty()) {
+            g_drawPool.addText(m_font, m_title, dest, Fw::AlignTopCenter);
+        }
+
+        // Dibujar las etiquetas
         if (m_showLabes) {
-            g_drawQueue->addText(m_font, std::to_string(m_values.back()), dest, Fw::AlignTopRight);
-            g_drawQueue->addText(m_font, std::to_string(maxVal), dest, Fw::AlignTopLeft);
-            g_drawQueue->addText(m_font, std::to_string(minVal), dest, Fw::AlignBottomLeft);
-        }*/
+            g_drawPool.addText(m_font, std::to_string(m_values.back()), dest, Fw::AlignTopRight);
+            g_drawPool.addText(m_font, std::to_string(maxVal), dest, Fw::AlignTopLeft);
+            g_drawPool.addText(m_font, std::to_string(minVal), dest, Fw::AlignBottomLeft);
+        }
     }
 }
 

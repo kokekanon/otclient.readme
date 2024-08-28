@@ -223,3 +223,45 @@ void DrawPoolManager::drawPool(const DrawPoolType type) {
         }
     }
 }
+
+void DrawPoolManager::addLine(const std::vector<Point>& points, int width, const Color& color)
+{
+    if (points.empty() || width < 0)
+        return;
+
+    CoordsBuffer coordsBuffer;
+    for (size_t i = 0; i < points.size() - 1; ++i) {
+        coordsBuffer.addLine(points[i], points[i + 1]);
+    }
+
+    DrawPool::DrawMethod method;
+    method.type = DrawPool::DrawMethodType::RECT; // Asumiendo que RECT es el tipo correcto para líneas
+    method.coordsBuffer = &coordsBuffer;
+
+    getCurrentPool()->add(color, nullptr, std::move(method), DrawMode::TRIANGLES);
+}
+
+void DrawPoolManager::addText(const BitmapFontPtr& font, const std::string& text, const Rect& screenCoords, Fw::AlignmentFlag align, const Color& color, bool shadow)
+{
+    if (!font || text.empty())
+        return;
+
+    // Asumiendo que tienes una función para generar el hash del texto
+    uint64_t hash = generateTextHash(font, text, screenCoords.size(), align);
+
+    DrawPool::DrawMethod method;
+    method.type = DrawPool::DrawMethodType::RECT; // Asumiendo que RECT es el tipo correcto para texto
+    method.dest = Rect(screenCoords.topLeft(), Size());
+    method.textHash = hash;
+    method.shadow = shadow;
+
+    getCurrentPool()->add(color, font->getTexture(), std::move(method), DrawMode::TRIANGLES);
+}
+
+// Función auxiliar para generar el hash del texto (reemplaza esto con tu implementación real)
+uint64_t DrawPoolManager::generateTextHash(const BitmapFontPtr& font, const std::string& text, const Size& size, Fw::AlignmentFlag align)
+{
+    // Implementa esta función según tus necesidades
+    // Por ahora, retornamos un valor dummy
+    return std::hash<std::string>{}(text);
+}

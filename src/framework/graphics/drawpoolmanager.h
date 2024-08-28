@@ -53,6 +53,8 @@ public:
     void addFilledTriangle(const Point& a, const Point& b, const Point& c, const Color& color = Color::white, const DrawConductor& condutor = DEFAULT_DRAW_CONDUCTOR) const;
     void addBoundingRect(const Rect& dest, const Color& color = Color::white, uint16_t innerLineWidth = 1, const DrawConductor& condutor = DEFAULT_DRAW_CONDUCTOR) const;
     void addAction(const std::function<void()>& action) const { getCurrentPool()->addAction(action); }
+    void addLine(const std::vector<Point>& points, int width, const Color& color);
+    void addText(const BitmapFontPtr& font, const std::string& text, const Rect& screenCoords, Fw::AlignmentFlag align, const Color& color = Color::white, bool shadow = false);
 
     void bindFrameBuffer(const Size& size, const Color& color = Color::white) const { getCurrentPool()->bindFrameBuffer(size, color); }
     void releaseFrameBuffer(const Rect& dest) const { getCurrentPool()->releaseFrameBuffer(dest); };
@@ -109,7 +111,7 @@ public:
 
 private:
     DrawPool* getCurrentPool() const;
-
+    uint64_t generateTextHash(const BitmapFontPtr& font, const std::string& text, const Size& size, Fw::AlignmentFlag align);
     void draw();
     void init(uint16_t spriteSize);
     void terminate() const;
