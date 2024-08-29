@@ -47,7 +47,7 @@ void UIGraph::drawSelf(DrawPoolType drawPane)
         for (size_t i = 0; i < points.size() - 1; ++i) {
             coordsBuffer->addLine(points[i], points[i + 1]);
         }
-        g_drawPool.addTexturedCoordsBuffer(nullptr, coordsBuffer, m_color);
+        g_drawPool.addTexturedCoordsBuffer(nullptr, coordsBuffer, Color::orange);
 
         // Dibujar el título
         if (!m_title.empty()) {
