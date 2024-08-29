@@ -10,7 +10,7 @@ TableData < UIScrollArea
 
 TableRow < UITableRow
   layout: horizontalBox
-  height: 10
+  height: 99
   text-wrap: true
   focusable: true
   even-background-color: alpha

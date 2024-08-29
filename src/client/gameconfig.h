@@ -75,6 +75,7 @@ public:
     std::string getAnimatedTextFontName() { return m_animatedTextFont->getName(); }
     std::string getStaticTextFontName() { return m_staticTextFont->getName(); }
     std::string getWidgetTextFontName() { return m_widgetTextFont->getName(); }
+    Size getViewPort() { return m_mapViewPort; }
 
     void loadFonts();
 

@@ -209,7 +209,7 @@ double Platform::getMemoryUsage()
 {
     PROCESS_MEMORY_COUNTERS pmc;
     GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
-    return pmc.WorkingSetSize / (1024.0 * 1024.0);
+    return pmc.WorkingSetSize;
 }
 
 #ifndef PRODUCT_PROFESSIONAL

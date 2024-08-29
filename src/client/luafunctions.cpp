@@ -377,6 +377,7 @@ void Client::registerLuaFunctions()
     g_lua.bindSingletonFunction("g_gameConfig", "getAnimatedTextFontName", &GameConfig::getAnimatedTextFontName, &g_gameConfig);
     g_lua.bindSingletonFunction("g_gameConfig", "getStaticTextFontName", &GameConfig::getStaticTextFontName, &g_gameConfig);
     g_lua.bindSingletonFunction("g_gameConfig", "getWidgetTextFontName", &GameConfig::getWidgetTextFontName, &g_gameConfig);
+    g_lua.bindSingletonFunction("g_gameConfig", "getViewPort", &GameConfig::getViewPort, &g_gameConfig);
 
     g_lua.registerSingletonClass("g_client");
     g_lua.bindSingletonFunction("g_client", "setEffectAlpha", &Client::setEffectAlpha, &g_client);
