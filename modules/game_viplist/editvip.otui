@@ -28,6 +28,10 @@ IconButton < CheckBox
 MainWindow
   size: 272 170
   !text: tr('Edit VIP list entry')
+  @onSetup: |
+    if g_game.getFeature(GameVipGroups) then
+      self:setSize("290 380")
+    end
 
   Label
     id: nameLabel
@@ -36,6 +40,13 @@ MainWindow
     anchors.left: parent.left
     color: green
     width: 180
+
+  HorizontalSeparator
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: prev.bottom
+    margin-bottom: -10
+
 
   Label
     !text: tr('Description') .. ':'
@@ -119,8 +130,49 @@ MainWindow
   HorizontalSeparator
     anchors.left: parent.left
     anchors.right: parent.right
+    anchors.bottom: prev.bottom
+    margin-bottom: -10
+    @onSetup: |
+      if not g_game.getFeature(GameVipGroups) then
+        self:hide()
+      end
+
+  Label
+    text: "Member of the following groups:"
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 10
+    @onSetup: |
+      if not g_game.getFeature(GameVipGroups) then
+        self:hide()
+      end
+  Panel
+    id: panelGroupName
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    @onSetup: |
+      if not g_game.getFeature(GameVipGroups) then
+        self:hide()
+      end
+    layout:
+      type: grid
+      cell-size: 251 20
+      cell-spacing: 1
+      flow: true
+      fit-children: true
+
+
+  HorizontalSeparator
+    anchors.left: parent.left
+    anchors.right: parent.right
     anchors.bottom: next.top
     margin-bottom: 10
+    @onSetup: |
+      if not g_game.getFeature(GameVipGroups) then
+        self:hide()
+      end
 
   Button
     id: buttonOK

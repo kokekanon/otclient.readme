@@ -3,13 +3,19 @@ vipButton = nil
 addVipWindow = nil
 editVipWindow = nil
 vipInfo = {}
+local groups = {
+    groupsAmountLeft = 5,
+    groupsName = {}
+}
+local viewMode = "default" -- default or groups
 
 function init()
     connect(g_game, {
         onGameStart = online,
         onGameEnd = offline,
         onAddVip = onAddVip,
-        onVipStateChange = onVipStateChange
+        onVipStateChange = onVipStateChange,
+        onVipGroupChange = onVipGroupChange
     })
 
     g_keyboard.bindKeyDown('Ctrl+P', toggle)
@@ -35,7 +41,8 @@ function terminate()
         onGameStart = online,
         onGameEnd = offline,
         onAddVip = onAddVip,
-        onVipStateChange = onVipStateChange
+        onVipStateChange = onVipStateChange,
+        onVipGroupChange = onVipGroupChange
     })
 
     if not g_game.getFeature(GameAdditionalVipInfo) then
@@ -156,6 +163,20 @@ function createEditWindow(widget)
     end
     iconRadioGroup:selectWidget(editVipWindow:recursiveGetChildById('icon' .. widget.iconId))
 
+    local panelGroupName = editVipWindow:getChildById('panelGroupName')
+    table.sort(groups.groupsName, function(a, b)
+        return a[2]:lower() < b[2]:lower()
+    end)
+    for i, group in ipairs(groups.groupsName) do
+        local label = g_ui.createWidget("ScreenshotType", panelGroupName)
+        label:setId(group[1])
+        label:setText(group[2])
+
+        if getPlayerGroups(name)[group[1]] then
+            label.enabled:setChecked(true)
+        end
+    end
+    
     local cancelFunction = function()
         editVipWindow:destroy()
         iconRadioGroup:destroy()
@@ -174,9 +195,20 @@ function createEditWindow(widget)
         local description = descriptionText:getText()
         local iconId = tonumber(iconRadioGroup:getSelectedWidget():getId():sub(5))
         local notify = notifyCheckBox:isChecked()
+        local groupIds = {}
+        for i, group in ipairs(panelGroupName:getChildren()) do
+            if group.enabled:isChecked() then
+                table.insert(groupIds, tonumber(group:getId()))
+            end
+        end
+
 
         if g_game.getFeature(GameAdditionalVipInfo) then
-            g_game.editVip(id, description, iconId, notify)
+            if g_game.getFeature(GameVipGroups) then
+                g_game.editVip(id, description, iconId, notify, groupIds)
+            else
+                g_game.editVip(id, description, iconId, notify)
+            end
         else
             if notify ~= false or #description > 0 or iconId > 0 then
                 vipInfo[name] = {
@@ -279,7 +311,7 @@ function sortBy(state)
     refresh()
 end
 
-function onAddVip(id, name, state, description, iconId, notify)
+function onAddVip(id, name, state, description, iconId, notify, groupID)
     local vipList = vipWindow:getChildById('contentsPanel')
 
     local label = g_ui.createWidget('VipListLabel')
@@ -329,7 +361,14 @@ function onAddVip(id, name, state, description, iconId, notify)
     if state == VipState.Offline and isHiddingOffline() then
         label:setVisible(false)
     end
+    if viewMode == "default" then
+        insertVipDefault(vipList, label, name, state)
+    else
+     --   insertVipGroup(vipList, label, name, state, groupID)
+    end
+end
 
+function insertVipDefault(vipList, label, name, state)
     local nameLower = name:lower()
     local childrenCount = vipList:getChildCount()
 
@@ -394,6 +433,9 @@ function onVipListMousePress(widget, mousePos, mouseButton)
     menu:addOption(tr('Add new VIP'), function()
         createAddWindow()
     end)
+    menu:addOption(tr('Add Group'), function()
+        createAddGroupWindow()
+    end)
 
     menu:addSeparator()
     if not isHiddingOffline() then
@@ -423,7 +465,10 @@ function onVipListMousePress(widget, mousePos, mouseButton)
             sortBy('type')
         end)
     end
-
+--[[ menu:addSeparator()
+    menu:addOption(tr('Sort by type'), function()
+        toggleViewMode()
+    end) ]]
     menu:display(mousePos)
 
     return true
@@ -494,4 +539,83 @@ function onVipListLabelMousePress(widget, mousePos, mouseButton)
     menu:display(mousePos)
 
     return true
+end
+
+function createAddGroupWindow()
+    local addGroupWindow = g_ui.createWidget('MainWindow', rootWidget)
+    local isMaxGroups = groups.groupsAmountLeft == 0
+    local windowSize = isMaxGroups and {width = 530, height = 100} or {width = 256, height = 128}
+    
+    addGroupWindow:setText(isMaxGroups and "Maximum of user-created groups reached" or 
+        string.format('Add Vip groups (User created groups left: %d)', groups.groupsAmountLeft))
+    addGroupWindow:setSize(windowSize)
+
+    local label = g_ui.createWidget('Label', addGroupWindow)
+    label:setText(isMaxGroups and 'You have already reached the maximum of groups you can create yourself.' or
+        'Please enter a group name:')
+    label:setTextWrap(isMaxGroups)
+    label:addAnchor(AnchorTop, 'parent', AnchorTop)
+    label:addAnchor(AnchorLeft, 'parent', AnchorLeft)
+    label:addAnchor(AnchorRight, 'parent', AnchorRight)
+
+    local textEdit
+    if not isMaxGroups then
+        textEdit = g_ui.createWidget('TextEdit', addGroupWindow)
+        textEdit:addAnchor(AnchorTop, 'prev', AnchorBottom)
+        textEdit:addAnchor(AnchorLeft, 'parent', AnchorLeft)
+        textEdit:addAnchor(AnchorRight, 'parent', AnchorRight)
+        textEdit:setMarginTop(4)
+    end
+
+    local separator = g_ui.createWidget('HorizontalSeparator', addGroupWindow)
+    separator:addAnchor(AnchorLeft, 'parent', AnchorLeft)
+    separator:addAnchor(AnchorRight, 'parent', AnchorRight)
+    separator:addAnchor(AnchorBottom, 'next', AnchorTop)
+    separator:setMarginBottom(10)
+
+    local cancelButton = g_ui.createWidget('Button', addGroupWindow)
+    cancelButton:setText(isMaxGroups and 'Ok' or 'Cancel')
+    cancelButton:setWidth(64)
+    cancelButton:addAnchor(AnchorRight, 'parent', AnchorRight)
+    cancelButton:addAnchor(AnchorBottom, 'parent', AnchorBottom)
+    cancelButton.onClick = function() addGroupWindow:destroy() end
+
+    if not isMaxGroups then
+        local okButton = g_ui.createWidget('Button', addGroupWindow)
+        okButton:setText('Ok')
+        okButton:setWidth(64)
+        okButton:addAnchor(AnchorRight, 'next', AnchorLeft)
+        okButton:addAnchor(AnchorBottom, 'parent', AnchorBottom)
+        okButton:setMarginRight(10)
+        okButton.onClick = function()
+            g_game.editVipGroups(1,textEdit:getText())
+            addGroupWindow:destroy()
+        end
+    end
+end
+
+function toggleViewMode()
+    if viewMode == "default" then
+        viewMode = "groups"
+    else
+        viewMode = "default"
+    end
+    refresh()
+end
+
+function onVipGroupChange(vipGroups, groupsAmountLeft)
+    groups.groupsAmountLeft = groupsAmountLeft
+    groups.groupsName = vipGroups
+end
+
+function getPlayerGroups(playerName)
+    local playerGroups = {}
+    for id, vip in pairs(g_game.getVips()) do
+    
+        if vip[1] == playerName then
+            playerGroups = vip[6]
+            break
+        end
+    end
+    return playerGroups
 end
