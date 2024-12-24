@@ -128,24 +128,28 @@ local function inventoryEvent(player, slot, item, oldItem)
     slotPanel.item.duration:setText("")
     slotPanel.item.charges:setText("")
     if g_game.getFeature(GameThingClock) then
-        if item and item:getDurationTime() > 0 then
-            if not itemSlotsWithDuration[slot] or itemSlotsWithDuration[slot].item ~= item then
-                itemSlotsWithDuration[slot] = {
-                    item = item,
-                    timeEnd = g_clock.seconds() + item:getDurationTime()
-                }
-            end
-            if modules.client_options.getOption('showExpiryInInvetory') then
-                if not updateSlotsDurationEvent then
-                    updateSlotsDuration()
-                end
-            end
-        else
+        if not item or item:getDurationTime() <= 0 then
             itemSlotsWithDuration[slot] = nil
+        else
+            local thingType = g_things.getThingType(item:getId(), ThingCategoryItem)
+            local durationTime = item:getDurationTime()
+            if thingType:getClothSlot() == slot then
+                if not itemSlotsWithDuration[slot] or itemSlotsWithDuration[slot].item ~= item then
+                    itemSlotsWithDuration[slot] = { item = item, timeEnd = g_clock.seconds() + durationTime }
+                end
+            else
+                if modules.client_options.getOption('showExpiryInInvetory') then
+                    slotPanel.item.duration:setText(formatDuration(durationTime))
+                end
+                itemSlotsWithDuration[slot] = nil
+            end
         end
     end
     
     if modules.client_options.getOption('showExpiryInInvetory') then
+        if not updateSlotsDurationEvent then
+            updateSlotsDuration()
+        end
         ItemsDatabase.setCharges(slotPanel.item, item)
     end
     ItemsDatabase.setTier(slotPanel.item, item)
