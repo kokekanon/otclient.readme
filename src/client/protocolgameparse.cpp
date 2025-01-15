@@ -2111,7 +2111,7 @@ void ProtocolGame::parsePlayerStats(const InputMessagePtr& msg) const
     const uint32_t maxMana = g_game.getFeature(Otc::GameDoubleHealth) ? msg->getU32() : msg->getU16();
 
     if (g_game.getClientVersion() < 1281) {
-        const uint8_t magicLevel = msg->getU8();
+        const uint16_t magicLevel = g_game.getFeature(Otc::GameDoubleMagicLevel) ? msg->getU16() : msg->getU8();
         const uint8_t baseMagicLevel = g_game.getFeature(Otc::GameSkillsBase) ? msg->getU8() : magicLevel;
         const uint8_t magicLevelPercent = msg->getU8();
 
