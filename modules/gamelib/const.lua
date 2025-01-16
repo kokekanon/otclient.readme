@@ -83,8 +83,8 @@ DirectionString = {
     [SouthEast] = "South East",
     [SouthWest] = "South West",
     [NorthWest] = "North West"
-  }
-  
+}
+
 FightOffensive = 1
 FightBalanced = 2
 FightDefensive = 3
@@ -214,7 +214,8 @@ GameWingsAurasEffectsShader = 118
 GameForgeConvergence = 119
 GameAllowCustomBotScripts = 120
 GameColorizedLootValue = 121
-GameDoubleMagicLevel = 123
+GameAllowPreWalk = 122
+GameDoubleMagicLevel = 124
 
 TextColors = {
     red = '#f55e5e',    -- '#c83200'
