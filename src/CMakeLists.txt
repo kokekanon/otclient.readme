@@ -335,6 +335,7 @@ set(SOURCE_FILES
 	client/spriteappearances.cpp
 	client/spritemanager.cpp
 	client/statictext.cpp
+	client/staticdata.h
 	client/thing.cpp
 	client/thingtype.cpp
 	client/thingtypemanager.cpp
