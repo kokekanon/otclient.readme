@@ -1657,8 +1657,8 @@ void ProtocolGame::parseMagicEffect(const InputMessagePtr& msg)
                 case Otc::MAGIC_EFFECTS_CREATE_EFFECT: {
                     const uint16_t effectId = g_game.getFeature(Otc::GameEffectU16) ? msg->getU16() : msg->getU8();
                     if (!g_things.isValidDatId(effectId, ThingCategoryEffect)) {
-                        g_logger.traceError(stdext::format("invalid effect id %d", effectId));
-                        continue;
+                        g_logger.debug(stdext::format("[{}] invalid effect id {}", __FUNCTION__, effectId));
+                        break;
                     }
 
                     const auto& effect = std::make_shared<Effect>();
