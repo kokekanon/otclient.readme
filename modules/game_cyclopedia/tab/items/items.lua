@@ -265,7 +265,7 @@ function Cyclopedia.internalCreateItem(data)
         end
     
         UI.InfoBase.quickLootCheck.onCheckChange = function(self, checked)
-            UI.InfoBase.quickLootCheck:setChecked(modules.game_quickloot.QuickLoot.lootExists(data:getId(), 1))
+            UI.InfoBase.quickLootCheck:setChecked(modules.game_quickloot.QuickLoot.lootExists(data:getId(), modules.game_quickloot.QuickLoot.data.filter))
             if checked then
                 modules.game_quickloot.QuickLoot.addLootList(data:getId(), modules.game_quickloot.QuickLoot.data.filter)
             else
