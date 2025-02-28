@@ -265,12 +265,12 @@ function Cyclopedia.internalCreateItem(data)
         end
     
         UI.InfoBase.quickLootCheck.onCheckChange = function(self, checked)
-            UI.InfoBase.quickLootCheck:setChecked(modules.game_quickloot.QuickLoot.lootExists(data:getId(), modules.game_quickloot.QuickLoot.data.filter))
             if checked then
                 modules.game_quickloot.QuickLoot.addLootList(data:getId(), modules.game_quickloot.QuickLoot.data.filter)
             else
                 modules.game_quickloot.QuickLoot.removeLootList(data:getId(), modules.game_quickloot.QuickLoot.data.filter)
             end
+            UI.InfoBase.quickLootCheck:setChecked(modules.game_quickloot.QuickLoot.lootExists(data:getId(), modules.game_quickloot.QuickLoot.data.filter))
         end
 
         local buy, sell = Cyclopedia.formatSaleData(internalData:getNpcSaleData())
