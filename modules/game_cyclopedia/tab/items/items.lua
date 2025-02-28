@@ -258,11 +258,11 @@ function Cyclopedia.internalCreateItem(data)
         end
         widget:setBackgroundColor("#585858")
        
-    if modules.game_quickloot.QuickLoot.data.filter == 2 then
-        UI.InfoBase.quickLootCheck:setText("Loot when Quick Looting")
-    else
-        UI.InfoBase.quickLootCheck:setText('Skip when Quick Looting')
-    end
+        if modules.game_quickloot.QuickLoot.data.filter == 2 then
+            UI.InfoBase.quickLootCheck:setText("Loot when Quick Looting")
+        else
+            UI.InfoBase.quickLootCheck:setText('Skip when Quick Looting')
+        end
     
         UI.InfoBase.quickLootCheck.onCheckChange = function(self, checked)
             UI.InfoBase.quickLootCheck:setChecked(modules.game_quickloot.QuickLoot.lootExists(data:getId(), 1))
