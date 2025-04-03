@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.51 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
 
 # CMAKE
 # apt install build-essential git
