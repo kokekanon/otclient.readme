@@ -70,7 +70,7 @@ public:
 
     int getReadSize() { return m_readPos - m_headerPos; }
     int getReadPos() { return m_readPos; }
-    int getUnreadSize() { return m_messageSize - (m_readPos - m_headerPos) - m_padding; }
+    int getUnreadSize() { return m_messageSize - (m_readPos - m_headerPos); }
     uint16_t getMessageSize() { return m_messageSize; }
 
     void setPaddingSize(uint8_t padding) { m_padding = padding; }

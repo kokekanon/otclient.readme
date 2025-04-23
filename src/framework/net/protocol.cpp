@@ -229,11 +229,9 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
         static uint8_t zbuffer[InputMessage::BUFFER_MAXSIZE];
         uint8_t inBuffer[InputMessage::BUFFER_MAXSIZE]{};
 
-        memcpy(inBuffer, m_inputMessage->getReadBuffer(), m_inputMessage->getUnreadSize() - m_inputMessage->getPaddingSize());
-
-        m_zstream.next_in = inBuffer;
+        m_zstream.next_in = m_inputMessage->getDataBuffer();
         m_zstream.next_out = zbuffer;
-        m_zstream.avail_in = m_inputMessage->getUnreadSize() - m_inputMessage->getPaddingSize();
+        m_zstream.avail_in = m_inputMessage->getUnreadSize();
         m_zstream.avail_out = InputMessage::BUFFER_MAXSIZE;
 
         const int32_t ret = inflate(&m_zstream, Z_FINISH);
@@ -310,7 +308,7 @@ bool Protocol::xteaDecrypt(const InputMessagePtr& inputMessage) const
     if (g_game.getClientVersion() >= 1405) {
         const uint8_t paddingSize = inputMessage->getU8();
         inputMessage->setPaddingSize(paddingSize);
-        decryptedSize = encryptedSize - paddingSize;
+        decryptedSize = encryptedSize - paddingSize - 1;
     } else {
         decryptedSize = inputMessage->getU16();
     }
