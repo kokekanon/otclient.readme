@@ -34,13 +34,13 @@
 .checkbox-group {
   display: flex;
   white-space: pre;
-  text-offset: 18 -3;
+  text-offset: 18 -3;  /* sonarcss-disable-line */
 
 }
 
 .questLogButton {
-  font: cipsoftFont;
-  text-auto-resize: true;
+  font: cipsoftFont; /* sonarcss-disable-line */
+  text-auto-resize: true; /* sonarcss-disable-line */
 }
 
 .separator {

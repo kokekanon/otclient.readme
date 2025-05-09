@@ -23,14 +23,15 @@
       <label id="lblHiddenNumber" class="text-left" textOffset="5 -2">0</label>
     </div>
   </minipanel>
-
+<!-- sonar-ignore-start -->
   <minipanel id="panelQuestLineSelected" class="content-right" anchor="parent" text="No quest line Selected" layout="type: verticalBox;">
     <TextListQuestLog id="ScrollAreaQuestList" style="height: 200"></TextListQuestLog>
     <MultiLineQuestLog id="panelQuestInfo" class="quest-info"></MultiLineQuestLog>
-    <input id="checkboxShowInQuestTracker" type="checkbox"  style="text-offset: 18 0;" onchange="self:onCheckChangeQuestTracker(event)" >Show in quest tracker</input>
+    <input id="checkboxShowInQuestTracker" type="checkbox"  style="text-offset: 18 0;" onchange="self:onCheckChangeQuestTracker(event)" >Show in quest tracker</input> /* sonarcss-disable-line */
   </minipanel>
 
   <HorizontalSeparator class="separator"></HorizontalSeparator>
   <Qtbutton id="trackerButton"class="questLogButton" style="margin-top:12;" onclick="self:toggleMiniWindowsTracker()">Quest Tracker</Qtbutton>
   <Qtbutton class="questLogButton" style="float: right;" onclick="self:close()">Close</Qtbutton>
+  <!-- sonar-ignore-end -->
 </window>
