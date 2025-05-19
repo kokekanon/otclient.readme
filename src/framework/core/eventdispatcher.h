@@ -66,8 +66,8 @@ private:
         type = DispatcherType::None;
     }
 
-    DispatcherType type = DispatcherType::None;
-    TaskGroup group = TaskGroup::None;
+    DispatcherType type{ DispatcherType::None };
+    TaskGroup group{ TaskGroup::None };
 
     friend class EventDispatcher;
 };
