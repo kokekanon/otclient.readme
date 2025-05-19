@@ -279,12 +279,12 @@ void EventDispatcher::mergeEvents() {
 }
 
 void EventDispatcher::ThreadTask::try_lock() {
-    if (g_dispatcher.context().getGroup() == TaskGroup::None) {
+    if (g_dispatcher.context().getGroup() == TaskGroup::TaskGroup_None) {
         mutex.lock();
     }
 }
 void EventDispatcher::ThreadTask::try_unlock() {
-    if (g_dispatcher.context().getGroup() == TaskGroup::None) {
+    if (g_dispatcher.context().getGroup() == TaskGroup::TaskGroup_None) {
         mutex.unlock();
     }
 }
