@@ -1,5 +1,4 @@
 name: Build - Windows - Solution
-
 on:
   workflow_dispatch:
   pull_request:
@@ -8,23 +7,20 @@ on:
   push:
     branches: [main]
     paths: ["src/**"]
-
 env:
   CMAKE_BUILD_PARALLEL_LEVEL: 2
   MAKEFLAGS: "-j 2"
-
 jobs:
   build:
     runs-on: windows-2022
     strategy:
       matrix:
         buildtype: [Debug]
-        triplet:  [x64-windows]
-
+        triplet: [x64-windows]
     steps:
     - uses: actions/checkout@v4
     - uses: microsoft/setup-msbuild@v1.1
-
+    
     - name: Compute vcpkg.json hash
       id: hash
       shell: pwsh
@@ -33,7 +29,7 @@ jobs:
         $sha256 = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
         $hash   = [BitConverter]::ToString($sha256) -replace '-', ''
         "hash=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
+    
     - name: Cache vcpkg artifacts
       uses: actions/cache@v4
       with:
@@ -44,35 +40,40 @@ jobs:
         key: vcpkg-${{ matrix.triplet }}-${{ steps.hash.outputs.hash }}
         restore-keys: |
           vcpkg-${{ matrix.triplet }}-
-
+    
     - name: Clone + bootstrap vcpkg
+      shell: pwsh
       run: |
         git clone https://github.com/microsoft/vcpkg.git
         cd vcpkg
         .\bootstrap-vcpkg.bat
-
+    
     - name: Resolve manifest deps
+      shell: pwsh
       run: |
         .\vcpkg.exe install --triplet x64-windows `
             "--x-manifest-root=${{ github.workspace }}" `
             --feature-flags=manifests,registries
       working-directory: vcpkg
-
+    
     - name: MSBuild (manifest mode)
-      run: msbuild.exe vc17/otclient.sln ^
-            /p:Configuration=Debug ^
-            /p:Platform=x64 ^
-            /p:VcpkgEnableManifest=true ^
-            /p:VcpkgRoot=${{ github.workspace }}\vcpkg ^
-            /m
-
+      shell: pwsh
+      run: |
+        msbuild.exe vc17/otclient.sln `
+          /p:Configuration=Debug `
+          /p:Platform=x64 `
+          /p:VcpkgEnableManifest=true `
+          /p:VcpkgRoot=${{ github.workspace }}\vcpkg `
+          /m
+    
     - name: Prepare & upload artifacts
       shell: pwsh
       run: |
         $out = "$env:GITHUB_WORKSPACE\artifacts"
         New-Item -ItemType Directory -Force -Path $out | Out-Null
-        Get-ChildItem -Recurse -Filter "otclient*.exe","*.dll" |
-
+        Get-ChildItem -Recurse -Filter "otclient*.exe" | Copy-Item -Destination $out
+        Get-ChildItem -Recurse -Filter "*.dll" | Copy-Item -Destination $out
+    
     - uses: actions/upload-artifact@v4
       with:
         name: otclient-${{ matrix.buildtype }}
