@@ -1,4 +1,13 @@
 local UI = nil
+local actionsHouse = {
+    getHousesByTown = 1,
+    placeHid = 2,
+    scheduleMoveOut = 3,
+    TransferHouse = 4,
+    cancelMoveOut = 5,
+    acceptTransfer = 6,
+    rejectTransfer = 7
+}
 
 function showHouse()
     UI = g_ui.loadUI("house", contentContainer)
@@ -307,14 +316,14 @@ function Cyclopedia.rejectTransfer()
                 Cyclopedia.Toggle(true, false, 5)
             end
 
-            g_game.requestRejectHouseTransfer(house.id)
+            g_game.sendCyclopediaHouseAuction(actionsHouse.rejectTransfer, house.id)
 
             Cyclopedia.House.ignore = true
             --[[
             if Cyclopedia.House.lastTown then
-                g_game.requestShowHouses(Cyclopedia.House.lastTown)
+                g_game.sendCyclopediaHouseAuction(actionsHouse.getHousesByTown, Cyclopedia.House.lastTown)
             else
-                g_game.requestShowHouses("")
+                g_game.sendCyclopediaHouseAuction(actionsHouse.getHousesByTown, "")
             end
             ]]--
 
@@ -382,10 +391,10 @@ function Cyclopedia.acceptTransfer()
                 Cyclopedia.Toggle(true, false, 5)
             end
 
-            g_game.requestAcceptHouseTransfer(house.id)
+            g_game.sendCyclopediaHouseAuction(actionsHouse.acceptTransfer, house.id)
             Cyclopedia.House.ignore = true
 
-            -- g_game.requestShowHouses("")
+            -- g_game.sendCyclopediaHouseAuction(actionsHouse.getHousesByTown, "")
             UI.TopBase.StatesOption:setOption("All States", true)
             UI.TopBase.SortOption:setOption("Sort by name", true)
         end
@@ -450,14 +459,14 @@ function Cyclopedia.cancelTransfer()
                 Cyclopedia.Toggle(true, false, 5)
             end
 
-            g_game.requestCancelHouseTransfer(house.id)
+            g_game.sendCyclopediaHouseAuction(actionsHouse.cancelMoveOut, house.id)
 
             Cyclopedia.House.ignore = true
             --[[
             if Cyclopedia.House.lastTown then
-                g_game.requestShowHouses(Cyclopedia.House.lastTown)
+                g_game.sendCyclopediaHouseAuction(actionsHouse.getHousesByTown, Cyclopedia.House.lastTown)
             else
-                g_game.requestShowHouses("")
+                g_game.sendCyclopediaHouseAuction(actionsHouse.getHousesByTown, "")
             end
             ]]--
 
@@ -561,14 +570,14 @@ function Cyclopedia.transferHouse()
                 Cyclopedia.Toggle(true, false, 5)
             end
 
-            g_game.requestTransferHouse(house.id, transfer, tonumber(value))
+            g_game.sendCyclopediaHouseAuction(actionsHouse.TransferHouse, house.id, transfer, tonumber(value))
 
             Cyclopedia.House.ignore = true
             --[[
             if Cyclopedia.House.lastTown then
-                g_game.requestShowHouses(Cyclopedia.House.lastTown)
+                g_game.sendCyclopediaHouseAuction(actionsHouse.getHousesByTown, Cyclopedia.House.lastTown)
             else
-                g_game.requestShowHouses("")
+                g_game.sendCyclopediaHouseAuction(actionsHouse.getHousesByTown, "")
             end
             ]]--
 
@@ -703,7 +712,7 @@ function Cyclopedia.moveOutHouse()
                 Cyclopedia.Toggle(true, false, 5)
             end
 
-            g_game.requestMoveOutHouse(house.id)
+            g_game.sendCyclopediaHouseAuction(actionsHouse.cancelMoveOut, house.id)
         end
 
         local function noCallback()
@@ -967,7 +976,7 @@ function Cyclopedia.bidHouse(widget)
                 Cyclopedia.Toggle(true, false, 5)
             end
 
-            g_game.requestBidHouse(house.id, value)
+            g_game.sendCyclopediaHouseAuction(actionsHouse.placeHid, house.id, value)
         end
 
         local function noCallback()
@@ -1000,7 +1009,7 @@ end
 
 function Cyclopedia.houseRefresh()
     if Cyclopedia.House.lastTown then
-        -- g_game.requestShowHouses(Cyclopedia.House.lastTown)
+        -- g_game.sendCyclopediaHouseAuction(actionsHouse.getHousesByTown, Cyclopedia.House.lastTown)
 
         if Cyclopedia.House.lastChangeState then
             if Cyclopedia.House.refreshEvent then
@@ -1239,10 +1248,10 @@ end
 function Cyclopedia.selectTown(widget, text, type)
     local name = text
     if type ~= 0 then
-        -- g_game.requestShowHouses(name)
+        -- g_game.sendCyclopediaHouseAuction(actionsHouse.getHousesByTown, name)
         Cyclopedia.House.lastTown = name
     else
-        -- g_game.requestShowHouses("")
+        -- g_game.sendCyclopediaHouseAuction(actionsHouse.getHousesByTown, "")
         Cyclopedia.House.lastTown = ""
     end
 end
