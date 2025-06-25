@@ -454,7 +454,7 @@ int push_luavalue(const StoreCategory& category) {
 }
 
 int push_luavalue(const SubOffer& subOffer) {
-    g_lua.createTable(0, 9);
+    g_lua.createTable(0, 14);
     g_lua.pushInteger(subOffer.id);
     g_lua.setField("id");
     g_lua.pushInteger(subOffer.count);
@@ -468,6 +468,8 @@ int push_luavalue(const SubOffer& subOffer) {
     if (subOffer.disabled) {
         g_lua.pushInteger(subOffer.disabledReason);
         g_lua.setField("disabledReason");
+        g_lua.pushInteger(subOffer.reasonIdDisable);
+        g_lua.setField("reasonIdDisable");
     }
     g_lua.pushInteger(subOffer.state);
     g_lua.setField("state");
@@ -477,11 +479,28 @@ int push_luavalue(const SubOffer& subOffer) {
         g_lua.pushInteger(subOffer.basePrice);
         g_lua.setField("basePrice");
     }
+    if (g_game.getClientVersion() < 1310) {
+
+        g_lua.pushString(subOffer.name);
+        g_lua.setField("name");
+        g_lua.pushString(subOffer.description);
+        g_lua.setField("description");
+
+        g_lua.createTable(0, subOffer.icons.size());
+        for (size_t i = 0; i < subOffer.icons.size(); ++i) {
+            g_lua.pushString(subOffer.icons[i]);
+            g_lua.rawSeti(i + 1);
+        }
+        g_lua.setField("icons");
+
+        g_lua.pushString(subOffer.parent);
+        g_lua.setField("parent");
+    }
     return 1;
 }
 
 int push_luavalue(const StoreOffer& offer) {
-    g_lua.createTable(0, 14);
+    g_lua.createTable(0, 20);
     g_lua.pushString(offer.name);
     g_lua.setField("name");
 
@@ -492,10 +511,29 @@ int push_luavalue(const StoreOffer& offer) {
     }
     g_lua.setField("subOffers");
 
-    g_lua.pushInteger(offer.ofertaid);
-    g_lua.setField("ofertaid");
-    g_lua.pushString(offer.description);
-    g_lua.setField("description");
+    if (g_game.getClientVersion() < 1310) { // oldProtocol
+        g_lua.pushString(offer.description);
+        g_lua.setField("description");
+        g_lua.pushInteger(offer.id);
+        g_lua.setField("id");
+        g_lua.pushInteger(offer.price);
+        g_lua.setField("price");
+        g_lua.pushInteger(offer.state);
+        g_lua.setField("state");
+        g_lua.pushInteger(offer.stateNewUntil);
+        g_lua.setField("stateNewUntil");
+        g_lua.pushInteger(offer.basePrice);
+        g_lua.setField("basePrice");
+        g_lua.pushBoolean(offer.disabled);
+        g_lua.setField("disabled");
+        if (offer.disabled) {
+            g_lua.pushString(offer.reasonIdDisable);
+            g_lua.setField("reasonIdDisable");
+        }
+    } else{
+        g_lua.pushBoolean(offer.configurable);
+        g_lua.setField("configurable");
+    }
     g_lua.pushInteger(offer.type);
     g_lua.setField("type");
 
@@ -544,8 +582,6 @@ int push_luavalue(const StoreOffer& offer) {
     g_lua.setField("popularityScore");
     g_lua.pushInteger(offer.stateNewUntil);
     g_lua.setField("stateNewUntil");
-    g_lua.pushBoolean(offer.configurable);
-    g_lua.setField("configurable");
     g_lua.pushInteger(offer.productsCapacity);
     g_lua.setField("productsCapacity");
 
@@ -629,11 +665,18 @@ int push_luavalue(const Banner& banner) {
 }
 
 int push_luavalue(const StoreData& storeData) {
-    g_lua.createTable(0, 7);
+    g_lua.createTable(0, 8);
     g_lua.pushString(storeData.categoryName);
     g_lua.setField("categoryName");
     g_lua.pushInteger(storeData.redirectId);
     g_lua.setField("redirectId");
+
+    g_lua.createTable(0, storeData.menuFilter.size());
+    for (size_t i = 0; i < storeData.menuFilter.size(); ++i) {
+        g_lua.pushString(storeData.menuFilter[i]);
+        g_lua.rawSeti(i + 1);
+    }
+    g_lua.setField("menuFilter");
 
     g_lua.createTable(0, storeData.disableReasons.size());
     for (size_t i = 0; i < storeData.disableReasons.size(); ++i) {
@@ -1155,5 +1198,88 @@ int push_luavalue(const RaceType& raceData)
     g_lua.setField("outfit");
     g_lua.pushBoolean(raceData.boss);
     g_lua.setField("boss");
+    return 1;
+}
+
+int push_luavalue(const DailyRewardItem& item) {
+    g_lua.createTable(0, 3);
+    g_lua.pushInteger(item.itemId);
+    g_lua.setField("itemId");
+    g_lua.pushString(item.name);
+    g_lua.setField("name");
+    g_lua.pushInteger(item.weight);
+    g_lua.setField("weight");
+    return 1;
+}
+
+int push_luavalue(const DailyRewardBundle& bundle) {
+    g_lua.createTable(0, 4);
+    g_lua.pushInteger(bundle.bundleType);
+    g_lua.setField("bundleType");
+    g_lua.pushInteger(bundle.itemId);
+    g_lua.setField("itemId");
+    g_lua.pushString(bundle.name);
+    g_lua.setField("name");
+    g_lua.pushInteger(bundle.count);
+    g_lua.setField("count");
+    return 1;
+}
+
+int push_luavalue(const DailyRewardDay& day) {
+    g_lua.createTable(0, 4);
+    g_lua.pushInteger(day.redeemMode);
+    g_lua.setField("redeemMode");
+    g_lua.pushInteger(day.itemsToSelect);
+    g_lua.setField("itemsToSelect");
+    g_lua.createTable(day.selectableItems.size(), 0);
+    for (size_t i = 0; i < day.selectableItems.size(); ++i) {
+        push_luavalue(day.selectableItems[i]);
+        g_lua.rawSeti(i + 1);
+    }
+    g_lua.setField("selectableItems");
+
+    g_lua.createTable(day.bundleItems.size(), 0);
+    for (size_t i = 0; i < day.bundleItems.size(); ++i) {
+        push_luavalue(day.bundleItems[i]);
+        g_lua.rawSeti(i + 1);
+    }
+    g_lua.setField("bundleItems");
+
+    return 1;
+}
+
+int push_luavalue(const DailyRewardData& data) {
+    g_lua.createTable(0, 5);
+    g_lua.pushInteger(data.days);
+    g_lua.setField("days");
+
+    g_lua.createTable(data.freeRewards.size(), 0);
+    for (size_t i = 0; i < data.freeRewards.size(); ++i) {
+        push_luavalue(data.freeRewards[i]);
+        g_lua.rawSeti(i + 1);
+    }
+    g_lua.setField("freeRewards");
+
+    g_lua.createTable(data.premiumRewards.size(), 0);
+    for (size_t i = 0; i < data.premiumRewards.size(); ++i) {
+        push_luavalue(data.premiumRewards[i]);
+        g_lua.rawSeti(i + 1);
+    }
+    g_lua.setField("premiumRewards");
+
+    g_lua.createTable(data.bonuses.size(), 0);
+    for (size_t i = 0; i < data.bonuses.size(); ++i) {
+        g_lua.createTable(0, 2);
+        g_lua.pushString(data.bonuses[i].name);
+        g_lua.setField("name");
+        g_lua.pushInteger(data.bonuses[i].id);
+        g_lua.setField("id");
+        g_lua.rawSeti(i + 1);
+    }
+    g_lua.setField("bonuses");
+
+    g_lua.pushInteger(data.maxUnlockableDragons);
+    g_lua.setField("maxUnlockableDragons");
+
     return 1;
 }

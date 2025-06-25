@@ -109,7 +109,7 @@ void StaticText::scheduleUpdate()
 
 void StaticText::compose()
 {
-    static const Color
+    static constexpr Color
         MESSAGE_COLOR1(239, 239, 0),
         MESSAGE_COLOR2(254, 101, 0),
         MESSAGE_COLOR3(95, 247, 247);
@@ -137,7 +137,7 @@ void StaticText::compose()
         text += " says:\n";
         m_color = MESSAGE_COLOR3;
     } else {
-        g_logger.warning(stdext::format("Unknown speak type: %d", m_mode));
+        g_logger.warning("Unknown speak type: {}", static_cast<uint8_t>(m_mode));
     }
 
     for (uint32_t i = 0; i < m_messages.size(); ++i) {

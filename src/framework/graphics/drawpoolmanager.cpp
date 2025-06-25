@@ -52,6 +52,7 @@ void DrawPoolManager::terminate() const
     }
 }
 
+DrawPoolType DrawPoolManager::getCurrentType() const { return static_cast<DrawPoolType>(CURRENT_POOL); }
 DrawPool* DrawPoolManager::getCurrentPool() const { return m_pools[CURRENT_POOL]; }
 void DrawPoolManager::select(DrawPoolType type) { CURRENT_POOL = static_cast<uint8_t>(type); }
 bool DrawPoolManager::isPreDrawing() const { return CURRENT_POOL != static_cast<uint8_t>(DrawPoolType::LAST); }
@@ -167,7 +168,7 @@ void DrawPoolManager::preDraw(const DrawPoolType type, const std::function<void(
     select(type);
     const auto pool = getCurrentPool();
 
-    if (pool->m_repaint.load()) {
+    if (pool->m_repaint.load(std::memory_order_acquire)) {
         resetSelectedPool();
         return;
     }
@@ -200,9 +201,9 @@ void DrawPoolManager::drawPool(const DrawPoolType type) {
         return;
 
     std::scoped_lock l(pool->m_mutexDraw);
+
     if (pool->hasFrameBuffer()) {
-        if (pool->m_repaint) {
-            pool->m_repaint.store(false);
+        if (pool->m_repaint.exchange(false, std::memory_order_acq_rel)) {
             pool->m_framebuffer->bind();
             for (const auto& obj : pool->m_objectsDraw)
                 drawObject(obj);
@@ -219,7 +220,7 @@ void DrawPoolManager::drawPool(const DrawPoolType type) {
         pool->m_framebuffer->draw();
         if (pool->m_afterDraw) pool->m_afterDraw();
     } else {
-        pool->m_repaint.store(false);
+        pool->m_repaint.store(false, std::memory_order_release);
         for (const auto& obj : pool->m_objectsDraw) {
             drawObject(obj);
         }

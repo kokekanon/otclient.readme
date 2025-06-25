@@ -46,6 +46,9 @@ public:
 #endif
     void disconnect();
 
+    void setRecorder(PacketRecorderPtr recorder);
+    void playRecord(PacketPlayerPtr player);
+
     bool isConnected();
     bool isConnecting();
     ticks_t getElapsedTicksSinceLastRead() const { return m_connection ? m_connection->getElapsedTicksSinceLastRead() : -1; }
@@ -77,8 +80,10 @@ protected:
     virtual void onConnect();
     virtual void onRecv(const InputMessagePtr& inputMessage);
     virtual void onError(const std::error_code& err);
+    virtual void onSend() {};
 
     void onProxyPacket(const std::shared_ptr<std::vector<uint8_t>>& packet);
+    void onPlayerPacket(const std::shared_ptr<std::vector<uint8_t>>& packet);
     void onLocalDisconnected(std::error_code ec);
     bool m_disconnected = false;
     uint32_t m_proxy = 0;
@@ -86,6 +91,8 @@ protected:
     std::array<uint32_t, 4> m_xteaKey{};
     uint32_t m_packetNumber{ 0 };
 
+    PacketPlayerPtr m_player;
+    PacketRecorderPtr m_recorder;
 private:
     void internalRecvHeader(const uint8_t* buffer, uint16_t size);
     void internalRecvData(const uint8_t* buffer, uint16_t size);

@@ -24,17 +24,17 @@
 #include "framebuffer.h"
 #include "graphics.h"
 #include "image.h"
+#include "texturemanager.h"
 
 #include <framework/core/application.h>
 #include <framework/core/eventdispatcher.h>
-
-#include "framework/core/graphicalapplication.h"
+#include <framework/core/graphicalapplication.h>
 
  // UINT16_MAX = just to avoid conflicts with GL generated ID.
 static std::atomic_uint32_t UID(UINT16_MAX);
 
-Texture::Texture() : m_uniqueId(++UID) { generateHash(); }
-Texture::Texture(const Size& size) : m_uniqueId(++UID)
+Texture::Texture() : m_uniqueId(UID.fetch_add(1)) { generateHash(); }
+Texture::Texture(const Size& size) : m_uniqueId(UID.fetch_add(1))
 {
     generateHash();
     if (!setupSize(size))
@@ -47,7 +47,7 @@ Texture::Texture(const Size& size) : m_uniqueId(++UID)
     setupFilters();
 }
 
-Texture::Texture(const ImagePtr& image, const bool buildMipmaps, const bool compress) : m_uniqueId(++UID)
+Texture::Texture(const ImagePtr& image, const bool buildMipmaps, const bool compress) : m_uniqueId(UID.fetch_add(1))
 {
     generateHash();
 
@@ -69,15 +69,13 @@ Texture::~Texture()
     }
 }
 
-Texture* Texture::create()
+void Texture::create()
 {
     if (m_image) {
         createTexture();
         uploadPixels(m_image, getProp(buildMipmaps), getProp(compress));
         m_image = nullptr;
     }
-
-    return this;
 }
 
 void Texture::updateImage(const ImagePtr& image) { m_image = image; setupSize(image->getSize()); }
@@ -173,10 +171,12 @@ bool Texture::setupSize(const Size& size)
 
     // checks texture max size
     if (std::max<int>(size.width(), size.height()) > g_graphics.getMaxTextureSize()) {
-        g_logger.error(stdext::format("loading texture with size %dx%d failed, "
-                       "the maximum size allowed by the graphics card is %dx%d,"
-                       "to prevent crashes the texture will be displayed as a blank texture",
-                       size.width(), size.height(), g_graphics.getMaxTextureSize(), g_graphics.getMaxTextureSize()));
+        g_logger.error(
+            "loading texture with size {}x{} failed, "
+            "the maximum size allowed by the graphics card is {}x{}, "
+            "to prevent crashes the texture will be displayed as a blank texture",
+            size.width(), size.height(), g_graphics.getMaxTextureSize(), g_graphics.getMaxTextureSize()
+        );
         return false;
     }
 
@@ -213,49 +213,14 @@ void Texture::setupFilters() const
 
 void Texture::setupTranformMatrix()
 {
-    const static Size SIZE32x64(32, 64);
-    const static Size SIZE64x32(64, 32);
-    const static Size SIZE64x128(64, 128);
-    const static Size SIZE128x256(128, 256);
-    const static Size SIZE256x512(256, 512);
-    const static Size SIZE512x1024(512, 1024);
-
-    static Matrix3 MATRIX11x11_CACHED = toMatrix(11);
-    static Matrix3 MATRIX32x32_CACHED = toMatrix(32);
-    static Matrix3 MATRIX64x64_CACHED = toMatrix(64);
-    static Matrix3 MATRIX128x128_CACHED = toMatrix(128);
-    static Matrix3 MATRIX256x256_CACHED = toMatrix(256);
-    static Matrix3 MATRIX512x512_CACHED = toMatrix(512);
-
-    static Matrix3 MATRIX32x64_CACHED = toMatrix(SIZE32x64);
-    static Matrix3 MATRIX64x32_CACHED = toMatrix(SIZE64x32);
-    static Matrix3 MATRIX64x128_CACHED = toMatrix(SIZE64x128);
-    static Matrix3 MATRIX128x256_CACHED = toMatrix(SIZE128x256);
-    static Matrix3 MATRIX256x512_CACHED = toMatrix(SIZE256x512);
-    static Matrix3 MATRIX512x1024_CACHED = toMatrix(SIZE512x1024);
-
-    if (getProp(upsideDown)) {
-        m_transformMatrix = { 1.0f / m_size.width(), 0.0f,                                                  0.0f,
-                              0.0f,                 -1.0f / m_size.height(),                                0.0f,
-                              0.0f,                  m_size.height() / static_cast<float>(m_size.height()), 1.0f };
-    } else {
-        if (m_size == 11) m_transformMatrix = std::move(MATRIX11x11_CACHED);
-        else if (m_size == 32) m_transformMatrix = std::move(MATRIX32x32_CACHED);
-        else if (m_size == 64) m_transformMatrix = std::move(MATRIX64x64_CACHED);
-        else if (m_size == 128) m_transformMatrix = std::move(MATRIX128x128_CACHED);
-        else if (m_size == 256) m_transformMatrix = std::move(MATRIX256x256_CACHED);
-        else if (m_size == 512) m_transformMatrix = std::move(MATRIX512x512_CACHED);
-        else if (m_size == SIZE32x64) m_transformMatrix = std::move(MATRIX32x64_CACHED);
-        else if (m_size == SIZE64x32) m_transformMatrix = std::move(MATRIX64x32_CACHED);
-        else if (m_size == SIZE64x128) m_transformMatrix = std::move(MATRIX64x128_CACHED);
-        else if (m_size == SIZE128x256) m_transformMatrix = std::move(MATRIX128x256_CACHED);
-        else if (m_size == SIZE256x512) m_transformMatrix = std::move(MATRIX256x512_CACHED);
-        else if (m_size == SIZE512x1024) m_transformMatrix = std::move(MATRIX512x1024_CACHED);
-        else m_transformMatrix = toMatrix(m_size);
-    }
+    m_transformMatrixId = g_textures.getMatrixId(m_size, getProp(upsideDown));
 }
 
-void Texture::setupPixels(const int level, const Size& size, const uint8_t* pixels, const int channels, const bool compress) const
+void Texture::setupPixels(const int level, const Size& size, const uint8_t* pixels, const int channels, const bool
+#ifndef OPENGL_ES
+                          compress
+#endif
+) const
 {
     GLenum format = 0;
     switch (channels) {

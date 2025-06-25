@@ -25,11 +25,17 @@
 
 #include "timer.h"
 
+thread_local DispatcherContext EventDispatcher::dispacherContext;
+
 EventDispatcher g_dispatcher, g_textDispatcher, g_mainDispatcher;
 int16_t g_mainThreadId = stdext::getThreadId();
 int16_t g_eventThreadId = -1;
 
-void EventDispatcher::init() {};
+void EventDispatcher::init() {
+    for (size_t i = 0; i < g_asyncDispatcher.get_thread_count(); ++i) {
+        m_threads.emplace_back(std::make_unique<ThreadTask>());
+    }
+};
 
 void EventDispatcher::shutdown()
 {
@@ -65,7 +71,8 @@ void EventDispatcher::startEvent(const ScheduledEventPtr& event)
     }
 
     const auto& thread = getThreadTask();
-    std::scoped_lock lock(thread->mutex);
+    thread->hasEvents.store(true, std::memory_order_release);
+    std::scoped_lock l(thread->mutex);
     thread->scheduledEventList.emplace_back(event);
 }
 
@@ -77,7 +84,8 @@ ScheduledEventPtr EventDispatcher::scheduleEvent(const std::function<void()>& ca
     assert(delay >= 0);
 
     const auto& thread = getThreadTask();
-    std::scoped_lock lock(thread->mutex);
+    thread->hasEvents.store(true, std::memory_order_release);
+    std::scoped_lock l(thread->mutex);
     return thread->scheduledEventList.emplace_back(std::make_shared<ScheduledEvent>(callback, delay, 1));
 }
 
@@ -89,7 +97,8 @@ ScheduledEventPtr EventDispatcher::cycleEvent(const std::function<void()>& callb
     assert(delay > 0);
 
     const auto& thread = getThreadTask();
-    std::scoped_lock lock(thread->mutex);
+    thread->hasEvents.store(true, std::memory_order_release);
+    std::scoped_lock l(thread->mutex);
     return thread->scheduledEventList.emplace_back(std::make_shared<ScheduledEvent>(callback, delay, 0));
 }
 
@@ -104,7 +113,8 @@ EventPtr EventDispatcher::addEvent(const std::function<void()>& callback)
     }
 
     const auto& thread = getThreadTask();
-    std::scoped_lock lock(thread->mutex);
+    thread->hasEvents.store(true, std::memory_order_release);
+    std::scoped_lock l(thread->mutex);
     return thread->events.emplace_back(std::make_shared<Event>(callback));
 }
 
@@ -113,7 +123,8 @@ void EventDispatcher::asyncEvent(std::function<void()>&& callback) {
         return;
 
     const auto& thread = getThreadTask();
-    std::scoped_lock lock(thread->mutex);
+    thread->hasEvents.store(true, std::memory_order_release);
+    std::scoped_lock l(thread->mutex);
     thread->asyncEvents.emplace_back(std::move(callback));
 }
 
@@ -122,7 +133,8 @@ void EventDispatcher::deferEvent(const std::function<void()>& callback) {
         return;
 
     const auto& thread = getThreadTask();
-    std::scoped_lock lock(thread->mutex);
+    thread->hasEvents.store(true, std::memory_order_release);
+    std::scoped_lock l(thread->mutex);
     thread->deferEvents.emplace_back(callback);
 }
 
@@ -131,10 +143,14 @@ void EventDispatcher::executeEvents() {
         return;
     }
 
+    dispacherContext.group = TaskGroup::Serial;
+    dispacherContext.type = DispatcherType::Event;
+
     for (const auto& event : m_eventList)
         event->execute();
 
     m_eventList.clear();
+    dispacherContext.reset();
 }
 
 std::vector<std::pair<uint64_t, uint64_t>> generatePartition(const size_t size) {
@@ -163,12 +179,22 @@ void EventDispatcher::executeAsyncEvents() {
     if (partitions.size() > 1) {
         const auto min = partitions[1].first;
         const auto max = partitions[partitions.size() - 1].second;
-        retFuture = g_asyncDispatcher.submit_loop(min, max, [&](const unsigned int i) {  m_asyncEventList[i].execute();  });
+        retFuture = g_asyncDispatcher.submit_loop(min, max, [&](const unsigned int i) {
+            dispacherContext.type = DispatcherType::AsyncEvent;
+            dispacherContext.group = TaskGroup::GenericParallel;
+            m_asyncEventList[i].execute();
+            dispacherContext.reset();
+        });
     }
+
+    dispacherContext.type = DispatcherType::AsyncEvent;
+    dispacherContext.group = TaskGroup::GenericParallel;
 
     const auto& [min, max] = partitions[0];
     for (uint_fast64_t i = min; i < max; ++i)
         m_asyncEventList[i].execute();
+
+    dispacherContext.reset();
 
     if (partitions.size() > 1)
         retFuture.wait();
@@ -177,20 +203,26 @@ void EventDispatcher::executeAsyncEvents() {
 }
 
 void EventDispatcher::executeDeferEvents() {
+    dispacherContext.group = TaskGroup::Serial;
+    dispacherContext.type = DispatcherType::DeferEvent;
+
     do {
         for (auto& event : m_deferEventList)
             event.execute();
         m_deferEventList.clear();
 
-        std::shared_lock l(m_sharedLock);
         for (const auto& thread : m_threads) {
             std::scoped_lock lock(thread->mutex);
+            if (m_deferEventList.size() < thread->deferEvents.size())
+                m_deferEventList.swap(thread->deferEvents);
             if (!thread->deferEvents.empty()) {
                 m_deferEventList.insert(m_deferEventList.end(), make_move_iterator(thread->deferEvents.begin()), make_move_iterator(thread->deferEvents.end()));
                 thread->deferEvents.clear();
             }
         }
     } while (!m_deferEventList.empty());
+
+    dispacherContext.reset();
 }
 
 void EventDispatcher::executeScheduledEvents() {
@@ -201,6 +233,9 @@ void EventDispatcher::executeScheduledEvents() {
         const auto& scheduledEvent = *it;
         if (scheduledEvent->remainingTicks() > 0)
             break;
+
+        dispacherContext.type = scheduledEvent->maxCycles() > 0 ? DispatcherType::CycleEvent : DispatcherType::ScheduledEvent;
+        dispacherContext.group = TaskGroup::Serial;
 
         scheduledEvent->execute();
 
@@ -213,20 +248,34 @@ void EventDispatcher::executeScheduledEvents() {
     if (it != m_scheduledEventList.begin()) {
         m_scheduledEventList.erase(m_scheduledEventList.begin(), it);
     }
+
+    dispacherContext.reset();
 }
 
 void EventDispatcher::mergeEvents() {
-    std::shared_lock l(m_sharedLock);
     for (const auto& thread : m_threads) {
-        std::scoped_lock lock(thread->mutex);
+        if (!thread->hasEvents.exchange(false, std::memory_order_acquire))
+            continue;
+
+        std::scoped_lock l(thread->mutex);
         if (!thread->events.empty()) {
-            m_eventList.insert(m_eventList.end(), make_move_iterator(thread->events.begin()), make_move_iterator(thread->events.end()));
-            thread->events.clear();
+            if (m_eventList.size() < thread->events.size())
+                m_eventList.swap(thread->events);
+
+            if (!thread->events.empty()) {
+                m_eventList.insert(m_eventList.end(), make_move_iterator(thread->events.begin()), make_move_iterator(thread->events.end()));
+                thread->events.clear();
+            }
         }
 
         if (!thread->asyncEvents.empty()) {
-            m_asyncEventList.insert(m_asyncEventList.end(), make_move_iterator(thread->asyncEvents.begin()), make_move_iterator(thread->asyncEvents.end()));
-            thread->asyncEvents.clear();
+            if (m_asyncEventList.size() < thread->asyncEvents.size())
+                m_asyncEventList.swap(thread->asyncEvents);
+
+            if (!thread->asyncEvents.empty()) {
+                m_asyncEventList.insert(m_asyncEventList.end(), make_move_iterator(thread->asyncEvents.begin()), make_move_iterator(thread->asyncEvents.end()));
+                thread->asyncEvents.clear();
+            }
         }
 
         if (!thread->scheduledEventList.empty()) {

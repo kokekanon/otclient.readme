@@ -216,6 +216,8 @@ GameAllowCustomBotScripts = 120
 GameColorizedLootValue = 121
 GameAllowPreWalk = 122
 GamePlayerFamiliars = 123
+GameLatencyAdaptiveCamera = 124
+GameMapCache = 125
 
 TextColors = {
     red = '#f55e5e',    -- '#c83200'
@@ -423,7 +425,7 @@ ResourceTypes = {
     COIN_TRANSFERRABLE = 91,
     COIN_AUCTION = 92,
     COIN_TOURNAMENT = 93
-};
+}
 
 CyclopediaCharacterInfoTypes = {
     BaseInformation = 0,
@@ -438,6 +440,9 @@ CyclopediaCharacterInfoTypes = {
     Ispection = 9,
     Badges = 10,
     Titles = 11
-};
+}
 
+StoreConst = {
+   InstantRewardAccess = 233,
+}
 -- @}

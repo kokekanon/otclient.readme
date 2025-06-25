@@ -33,6 +33,8 @@
 #else
 #include "connection.h"
 #endif
+#include <framework/net/packet_player.h>
+#include <framework/net/packet_recorder.h>
 
 extern asio::io_service g_ioService;
 
@@ -65,8 +67,19 @@ void Protocol::connect(const std::string_view host, const uint16_t port)
     }
 
     m_connection = std::make_shared<Connection>();
-    m_connection->setErrorCallback([capture0 = asProtocol()](auto&& PH1) { capture0->onError(std::forward<decltype(PH1)>(PH1));    });
-    m_connection->connect(host, port, [capture0 = asProtocol()] { capture0->onConnect(); });
+    std::weak_ptr<Protocol> weakSelf = asProtocol();
+    m_connection->setErrorCallback([weakSelf](auto&& err) {
+        if (auto self = weakSelf.lock()) {
+            self->onError(std::forward<decltype(err)>(err));
+        }
+    });
+    m_connection->connect(host, port, [weakSelf] {
+        if (auto self = weakSelf.lock()) {
+            if (!self->m_disconnected) {
+                self->onConnect();
+            }
+        }
+    });
 }
 #else
 void Protocol::connect(const std::string_view host, uint16_t port, bool gameWorld)
@@ -109,6 +122,16 @@ bool Protocol::isConnecting()
 
 void Protocol::send(const OutputMessagePtr& outputMessage)
 {
+    if (m_player) {
+        m_player->onOutputPacket(outputMessage);
+        return;
+    }
+
+    if (m_recorder) {
+        m_recorder->addOutputPacket(outputMessage);
+    }
+
+
     // encrypt
     if (m_xteaEncryptionEnabled)
         xteaEncrypt(outputMessage);
@@ -121,6 +144,8 @@ void Protocol::send(const OutputMessagePtr& outputMessage)
 
     // write message size
     outputMessage->writeMessageSize();
+
+    onSend();
 
     if (m_proxy) {
         const auto packet = std::make_shared<ProxyPacket>(outputMessage->getHeaderBuffer(), outputMessage->getWriteBuffer());
@@ -189,7 +214,10 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
     if (m_sequencedPackets) {
         decompress = (m_inputMessage->getU32() & 1 << 31);
     } else if (m_checksumEnabled && !m_inputMessage->readChecksum()) {
-        g_logger.traceError(stdext::format("got a network message with invalid checksum, size: %i", static_cast<int>(m_inputMessage->getMessageSize())));
+        g_logger.traceError(
+            "got a network message with invalid checksum, size: {}",
+            static_cast<int>(m_inputMessage->getMessageSize())
+        );
         return;
     }
 
@@ -210,14 +238,14 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
 
         const int32_t ret = inflate(&m_zstream, Z_FINISH);
         if (ret != Z_OK && ret != Z_STREAM_END) {
-            g_logger.traceError(stdext::format("failed to decompress message - %s", m_zstream.msg));
+            g_logger.traceError("failed to decompress message - {}", m_zstream.msg);
             return;
         }
 
         const uint32_t totalSize = m_zstream.total_out;
         inflateReset(&m_zstream);
         if (totalSize == 0) {
-            g_logger.traceError(stdext::format("invalid size of decompressed message - %i", totalSize));
+            g_logger.traceError("invalid size of decompressed message - %i", totalSize);
             return;
         }
 
@@ -225,6 +253,9 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
         m_inputMessage->setMessageSize(m_inputMessage->getHeaderSize() + totalSize);
     }
 
+    if (m_recorder) {
+        m_recorder->addInputPacket(m_inputMessage);
+    }
     onRecv(m_inputMessage);
 }
 
@@ -347,10 +378,49 @@ void Protocol::onLocalDisconnected(std::error_code ec)
     if (m_disconnected)
         return;
     auto self(asProtocol());
+    #ifndef __EMSCRIPTEN__
     post(g_ioService, [&, ec] {
         if (m_disconnected)
             return;
         m_disconnected = true;
         onError(ec);
     });
+    #endif
+}
+
+void Protocol::onPlayerPacket(const std::shared_ptr<std::vector<uint8_t>>& packet)
+{
+    if (m_disconnected)
+        return;
+    auto self(asProtocol());
+    #ifndef __EMSCRIPTEN__
+    post(g_ioService, [&, packet] {
+        if (m_disconnected)
+            return;
+        m_inputMessage->reset();
+
+        m_inputMessage->setHeaderSize(0);
+        m_inputMessage->fillBuffer(packet->data(), packet->size());
+        m_inputMessage->setMessageSize(packet->size());
+        onRecv(m_inputMessage);
+    });
+    #endif
+}
+
+void Protocol::playRecord(PacketPlayerPtr player)
+{
+    m_disconnected = false;
+    m_player = player;
+    m_player->start([capture0 = asProtocol()](auto&& PH1) {
+        capture0->onPlayerPacket(std::forward<decltype(PH1)>(PH1));
+    },
+    [capture0 = asProtocol()](auto&& PH1) {
+        capture0->onLocalDisconnected(std::forward<decltype(PH1)>(PH1));
+    });
+    return onConnect();
+}
+
+void Protocol::setRecorder(PacketRecorderPtr recorder)
+{
+    m_recorder = recorder;
 }

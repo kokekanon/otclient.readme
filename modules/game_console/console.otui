@@ -25,6 +25,7 @@ ConsolePhantomLabel < UILabel
 
 ConsoleTabBar < MoveableTabBar
   height: 28
+  phantom: true
 
 ConsoleTabBarPanel < MoveableTabBarPanel
   id: consoleTab
@@ -38,6 +39,7 @@ ConsoleTabBarPanel < MoveableTabBarPanel
     padding-right: 12
     padding-left: 4
     padding-top: 4
+    padding-bottom: 4
     vertical-scrollbar: consoleScrollBar
     layout:
       type: verticalBox
@@ -98,6 +100,43 @@ Panel
     padding: 1
     focusable: false
 
+  Panel
+    id: readOnlyPanel
+    anchors.top: prev.top
+    anchors.left: parent.horizontalCenter
+    anchors.right: parent.horizontalCenter
+    anchors.bottom: consoleTextEdit.top
+    margin-left: 2
+    margin-right: 6
+    margin-bottom: 4
+    padding: 1
+    focusable: false
+    ScrollablePanel
+      id: panel
+      anchors.fill: parent
+      margin-right: 12
+      vertical-scrollbar: consoleScrollBarReadOnlyPanel
+      image-source: /images/ui/3pixel_frame_borderimage
+      image-border: 4
+      padding: 1
+      padding-right: 12
+      padding-left: 4
+      padding-top: 4
+      padding-bottom: 4
+      inverted-scroll: true
+      layout:
+        type: verticalBox
+        align-bottom: true
+    VerticalQtScrollBar
+      id: consoleScrollBarReadOnlyPanel
+      anchors.top: parent.top
+      anchors.bottom: parent.bottom
+      anchors.right: parent.right
+      step: 14
+      pixels-scroll: true
+      margin-top: 4
+      margin-bottom: 4
+
   ConsoleTabBar
     id: consoleTabBar
     anchors.left: parent.left
@@ -151,6 +190,51 @@ Panel
       image-clip: 18 0 18 18
 
   TabButton
+    id: extendedViewDraggable
+    !tooltip: tr('Enable/ Disable draggable chat')
+    image-source: /images/ui/console_buttons
+    image-clip: 0 64 16 16
+    anchors.right: extendedViewHide.left
+    anchors.bottom: consoleContentPanel.top
+    margin-bottom: 5
+    margin-right: 1
+    size: 16 16
+    visible: false
+
+    @onClick: |
+      self:setChecked(not self:isChecked())
+      extendedViewDraggable(self:isChecked())
+
+    $checked:
+      image-clip: 16 64 16 16
+    $!checked:
+      image-clip: 0 64 16 16
+    $pressed:
+      image-clip: 16 64 16 16
+
+  TabButton
+    id: extendedViewHide
+    !tooltip: tr('Hide Chat')
+    image-source: /images/ui/console_buttons
+    image-clip: 0 80 16 16
+    anchors.right: closeChannelButton.left
+    anchors.bottom: consoleContentPanel.top
+    margin-bottom: 5
+    margin-right: 1
+    visible: false
+    size: 16 16
+    @onClick: |
+      self:setChecked(not self:isChecked())
+      extendedViewHide(self:isChecked())
+
+    $checked:
+      image-clip: 16 80 16 16
+    $!checked:
+      image-clip: 0 80 16 16
+    $pressed:
+      image-clip: 16 80 16 16
+
+  TabButton
     id: closeChannelButton
     !tooltip: tr('Close this channel') .. ' (Ctrl+E)'
     image-source: /images/ui/console_buttons
@@ -191,7 +275,7 @@ Panel
     !tooltip: tr('Ignore players')
     image-source: /images/ui/console_buttons
     image-clip: 0 32 16 16
-    anchors.right: parent.right
+    anchors.right: readOnlyButton.left
     anchors.bottom: consoleContentPanel.top
     margin-bottom: 5
     margin-right: 5
@@ -204,7 +288,30 @@ Panel
     $pressed:
       image-clip: 16 32 16 16
 
-  TabButton
+  UIButton
+    id: readOnlyButton
+    text: ""
+    anchors.right: parent.right
+    anchors.top: parent.top
+    margin-right: 5
+    size: 96 18
+    image-clip: 0 0 96 18
+    icon: /images/game/console/readOnly
+    color: #dfdfdfff
+    font: verdana-11px-rounded
+    padding: 5
+    tab-spacing: 0
+    &ignoreTextResize: true
+    text-auto-resize: false
+    $checked:
+      image-clip: 0 0 96 18
+      color: #dfdfdfff
+
+    $on !checked:
+      image-clip: 0 0 96 18
+      color: #dfdfdfff
+
+  UIButton
     id: sayModeButton
     image-source: /images/ui/console_say
     image-clip: 0 0 18 18

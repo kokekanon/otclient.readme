@@ -5,59 +5,79 @@ local specialsAmount = 0
 local storeAmount = 0
 
 local chaseModeRadioGroup
+local controlButton1400 = nil
+local optionPanel = nil
+local buttonConfigs = {}
+local buttonOrder = {}
+local COLORS = {
+    BASE_1 = "#484848",
+    BASE_2 = "#414141"
+}
+
+local PANEL_CONSTANTS = {
+    ICON_WIDTH = 18,
+    ICON_HEIGHT = 18,
+    MAX_ICONS_PER_ROW = {
+        OPTIONS = 5,
+        SPECIALS = 2,
+        STORE = 1
+    },
+    MULTI_STORE_HEIGHT = 20,
+    HEIGHT_EXTRA_ONPANEL = -5,
+    HEIGHT_EXTRA_SHRINK = 5
+}
+
+local optionsShrink = false
+
+local function calculatePanelHeight(panel, max_icons_per_row)
+    local icon_count = 0
+    for _, icon in ipairs(panel:getChildren()) do
+        if icon:isVisible() then
+            icon_count = icon_count + 1
+        end
+    end
+    local rows = math.ceil(icon_count / max_icons_per_row)
+    local height = (rows * PANEL_CONSTANTS.ICON_HEIGHT) + (rows * 3)
+    return height, icon_count
+end
 
 function reloadMainPanelSizes()
-    local main = modules.game_interface.getMainRightPanel()
-    local rightPanel = modules.game_interface.getRightPanel()
-
-    if not main or not rightPanel then
+    local main_panel = modules.game_interface.getMainRightPanel()
+    local right_panel = modules.game_interface.getRightPanel()
+    if not main_panel or not right_panel then
         return
     end
-    
-    local height = 1
-    local function calculatePanelHeight(icon_count, max_icons_per_row, icon_size)
-        local rows = math.ceil(icon_count / max_icons_per_row)
-        return (rows * icon_size) + (rows * 3)
-    end
-
-    for _, panel in ipairs(main:getChildren()) do
+    local total_height = 1
+    for _, panel in ipairs(main_panel:getChildren()) do
         if panel.panelHeight ~= nil then
             if panel:isVisible() then
                 panel:setHeight(panel.panelHeight)
-                height = height + panel.panelHeight
-
-                if panel:getId() == 'mainoptionspanel' and panel:isOn() then
-             
-                    local function calculatePanelHeightFromPanel(panel, icon_width, icon_height, max_icons_per_row)
-                        local icon_count = 0
-                        for _, icon in ipairs(panel:getChildren()) do
-                            if icon:isVisible() then
-                                icon_count = icon_count + 1
-                            end
+                total_height = total_height + panel.panelHeight
+                if panel:getId() == 'mainoptionspanel' then
+                    if panel:isOn() then
+                        local options_panel = optionsController.ui.onPanel.options
+                        local options_height, options_count =
+                            calculatePanelHeight(options_panel, PANEL_CONSTANTS.MAX_ICONS_PER_ROW.OPTIONS)
+                        local specials_panel = optionsController.ui.onPanel.specials
+                        local specials_height, specials_count =
+                            calculatePanelHeight(specials_panel, PANEL_CONSTANTS.MAX_ICONS_PER_ROW.SPECIALS)
+                        local store_panel = panel.onPanel.store
+                        local store_height, store_count = calculatePanelHeight(store_panel,
+                            PANEL_CONSTANTS.MAX_ICONS_PER_ROW.STORE)
+                        if store_count > 0 then
+                            store_height = store_count * PANEL_CONSTANTS.MULTI_STORE_HEIGHT + (store_count - 1) * 2
                         end
-
-                        local rows = math.ceil(icon_count / max_icons_per_row)
-                        return (rows * icon_height) + (rows * 3) 
-                    end
-
-                    local options_panel = optionsController.ui.onPanel.options
-                    local options_height = calculatePanelHeightFromPanel(options_panel, 18, 18, 5) 
-
-                    local specials_panel = optionsController.ui.onPanel.specials
-                    local specials_height = calculatePanelHeightFromPanel(specials_panel, 18, 18, 2) 
-
-                    local max_panel_height = math.max(options_height, specials_height)
-                    panel:setHeight(panel:getHeight() + max_panel_height)
-                    height = height + options_height
-
-                    local store_panel = panel.onPanel.store
-                    local store_height = calculatePanelHeightFromPanel(store_panel, 18, 18, 1) 
-
-                    store_panel:setHeight(store_height)
-                    height = height + store_height
-
-                    if store_panel:getChildCount() >= 2 then
-                        height = height + 15 
+                        local combined_height = store_height + math.max(options_height, specials_height)
+                        local extra_height = PANEL_CONSTANTS.HEIGHT_EXTRA_ONPANEL
+                        if store_count >= 2 then
+                            extra_height = extra_height - (store_count - 1) * 5
+                        end
+                        combined_height = combined_height + extra_height
+                        store_panel:setHeight(store_height)
+                        panel:setHeight(combined_height + panel.panelHeight)
+                        total_height = total_height + combined_height
+                    else
+                        total_height = total_height + PANEL_CONSTANTS.HEIGHT_EXTRA_SHRINK
                     end
                 end
             else
@@ -65,28 +85,22 @@ function reloadMainPanelSizes()
             end
         end
     end
-
-    main:setHeight(height)
-    rightPanel:fitAll()
+    main_panel:setHeight(total_height)
+    right_panel:fitAll()
 end
 
--- @ Options
-local optionsShrink = false
 local function refreshOptionsSizes()
     if optionsShrink then
         optionsController.ui:setOn(false)
-        optionsController.ui.onPanel:hide()
         optionsController.ui.offPanel:show()
     else
         optionsController.ui:setOn(true)
-        optionsController.ui.onPanel:show()
         optionsController.ui.offPanel:hide()
     end
     reloadMainPanelSizes()
 end
 
 local function createButton_large(id, description, image, callback, special, front)
-    -- fast version
     local panel = optionsController.ui.onPanel.store
 
     storeAmount = storeAmount + 1
@@ -160,17 +174,30 @@ function optionsController:onInit()
     createButton_large('Store shop', tr('Store shop'), '/images/options/store_large', toggleStore,
     false, 8)
 
+    if not optionPanel then
+        optionPanel = g_ui.loadUI('option_control_buttons', modules.client_options:getPanel())
+        modules.client_options.addButton("Interface", "Control Buttons", optionPanel, function() initControlButtons() end)
+    end
 end
 
 function toggleStore()
-    if g_game.getClientVersion() >= 1332 then
-        modules.game_store.toggle()
+    if  g_game.getFeature(GameIngameStore) then
+        modules.game_store.toggle() -- cipsoft packets
     else
-        modules.game_shop.toggle() --game_shopv8
+        modules.game_shop.toggle() -- custom
     end
 end
 
 function optionsController:onTerminate()
+    if optionPanel then
+        optionPanel:destroy()
+        optionPanel = nil
+        modules.client_options.removeButton("Interface", "Control Buttons")  -- hot reload
+    end
+    if controlButton1400 then
+        controlButton1400:destroy()
+        controlButton1400 = nil
+    end
 end
 
 function optionsController:onGameStart()
@@ -184,6 +211,31 @@ function optionsController:onGameStart()
         return (a.index or 1000) < (b.index or 1000)
     end)
     getOptionsPanel:reorderChildren(children)
+    optionsController:scheduleEvent(function()
+        if optionPanel then
+            local config = loadButtonConfig()
+            buttonConfigs = config.buttons or {}
+            buttonOrder = config.order or {}
+            local optionsPanel = optionsController.ui.onPanel.options
+            if optionsPanel then
+                for _, button in ipairs(optionsPanel:getChildren()) do
+                    local id = button:getId()
+                    if id and buttonConfigs[id] then
+                        button:setVisible(buttonConfigs[id].visible)
+                    end
+                end
+                reorderButtons()
+                updateDisplayedButtonsList()
+                updateAvailableButtonsList()
+                reloadMainPanelSizes()
+            end
+        end
+    end, 50, "onGameStart")
+    if g_game.getClientVersion() >= 1400 and not controlButton1400 then
+        controlButton1400 = modules.game_mainpanel.addToggleButton('controButtons', tr('Manage control buttons'),
+        '/images/options/button_control', function() modules.client_options.openOptionsCategory("Interface", "Control Buttons") end, false, 1)
+        controlButton1400:setOn(false)
+    end
 end
 
 function optionsController:onGameEnd()
@@ -206,5 +258,358 @@ end
 function addStoreButton(id, description, image, callback, front)
     return createButton_large(id, description, image, callback, true, front)
 end
--- @ End of Options
 
+function toggleExtendedViewButtons(extended)
+    local optionsPanel = optionsController.ui.onPanel.options
+    local specialsPanel = optionsController.ui.onPanel.store
+    local rightGamePanel = modules.client_topmenu.getRightGameButtonsPanel()
+    if extended then
+        local optionChildren = optionsPanel:getChildren()
+        for _, button in ipairs(optionChildren) do
+            if not button:isDestroyed() then
+                button.originalPanel = "options"
+                rightGamePanel:addChild(button)
+            end
+        end
+        local specialChildren = specialsPanel:getChildren()
+        for _, button in ipairs(specialChildren) do
+            if not button:isDestroyed() then
+                button.originalPanel = "specials"
+                rightGamePanel:addChild(button)
+            end
+        end
+        optionsController.ui:hide()
+        optionsController.ui:setHeight(0)
+    else
+        local children = rightGamePanel:getChildren()
+        for _, button in ipairs(children) do
+            if not button:isDestroyed() then
+                if button.originalPanel == "options" then
+                    optionsPanel:addChild(button)
+                elseif button.originalPanel == "specials" then
+                    specialsPanel:addChild(button)
+                end
+            end
+        end
+        optionsController.ui:show(true)
+        optionsController.ui:setHeight(28)
+        local mainRightPanel = modules.game_interface.getMainRightPanel()
+        if mainRightPanel:hasChild(optionsController.ui) then
+            mainRightPanel:moveChildToIndex(optionsController.ui, 4)
+        end
+    end
+    refreshOptionsSizes()
+end
+
+function saveButtonConfig()
+    local config = {
+        buttons = {},
+        order = {}
+    }
+    for id, buttonConfig in pairs(buttonConfigs) do
+        if type(id) == "string" and type(buttonConfig) == "table" then
+            config.buttons[id] = {
+                visible = buttonConfig.visible,
+                tooltip = buttonConfig.tooltip
+            }
+        end
+    end
+    for i, id in ipairs(buttonOrder) do
+        config.order[tostring(i)] = id
+    end
+    g_settings.setNode('control_buttons', config)
+end
+
+function loadButtonConfig()
+    local config = g_settings.getNode('control_buttons') or {
+        buttons = {},
+        order = {}
+    }
+    local orderArray = {}
+    if config.order then
+        local keys = {}
+        for k in pairs(config.order) do
+            table.insert(keys, tonumber(k))
+        end
+        table.sort(keys)
+        for _, k in ipairs(keys) do
+            table.insert(orderArray, config.order[tostring(k)])
+        end
+    end
+
+    return {
+        buttons = config.buttons or {},
+        order = orderArray
+    }
+end
+
+local function updateList(listWidget, isVisibleList)
+    if not g_game.isOnline() or not listWidget then
+        return
+    end
+    local focusedItem = listWidget:getFocusedChild()
+    local focusedId = focusedItem and focusedItem.buttonId
+    local existingItems = {}
+    for _, child in ipairs(listWidget:getChildren()) do
+        existingItems[child.buttonId] = child
+    end
+    local displayButtons = {}
+    for id, config in pairs(buttonConfigs) do
+        if (config.visible == true) == isVisibleList then
+            table.insert(displayButtons, {
+                id = id,
+                config = config
+            })
+        end
+    end
+    if isVisibleList then
+        table.sort(displayButtons, function(a, b)
+            local indexA = table.find(buttonOrder, a.id) or 999
+            local indexB = table.find(buttonOrder, b.id) or 999
+            return indexA < indexB
+        end)
+    end
+    for buttonId, item in pairs(existingItems) do
+        local shouldBeInList = false
+        for _, buttonData in ipairs(displayButtons) do
+            if buttonData.id == buttonId then
+                shouldBeInList = true
+                break
+            end
+        end
+        if not shouldBeInList then
+            item:destroy()
+            existingItems[buttonId] = nil
+        end
+    end
+
+    local currentChildren = {}
+    for i, buttonData in ipairs(displayButtons) do
+        local buttonId = buttonData.id
+        local buttonConfig = buttonData.config
+        local item = existingItems[buttonId]
+        if not item then
+            item = g_ui.createWidget('HotkeyListLabel', listWidget)
+            item:setId(buttonId)
+            item.buttonId = buttonId
+            item:setText(buttonConfig.tooltip)
+            item:setTextAlign(AlignLeft)
+        end
+        if not item:isFocused() then
+            item:setBackgroundColor((i % 2 == 0) and COLORS.BASE_1 or COLORS.BASE_2)
+        end
+
+        table.insert(currentChildren, item)
+    end
+    listWidget:reorderChildren(currentChildren)
+    if focusedId then
+        for _, child in ipairs(listWidget:getChildren()) do
+            if child.buttonId == focusedId then
+                child:focus()
+                break
+            end
+        end
+    end
+end
+
+function updateDisplayedButtonsList()
+    updateList(optionPanel.panelDisplayedButtons.displayedButtonsList, true)
+end
+
+function updateAvailableButtonsList()
+    updateList(optionPanel.panelAvailableButtons.displayedAvailableButtonsList, false)
+end
+
+function moveToAvailable()
+    local displayedList = optionPanel.panelDisplayedButtons.displayedButtonsList
+    local selectedItem = displayedList:getFocusedChild()
+
+    if not selectedItem then
+        return
+    end
+
+    local buttonId = selectedItem.buttonId
+    local optionsPanel = optionsController.ui.onPanel.options
+    local button = optionsPanel:getChildById(buttonId)
+    if button then
+        button:setVisible(false)
+        buttonConfigs[buttonId].visible = false
+        table.removevalue(buttonOrder, buttonId)
+        updateDisplayedButtonsList()
+        updateAvailableButtonsList()
+        saveButtonConfig()
+        reloadMainPanelSizes()
+        displayedList:focusNextChild(KeyboardFocusReason)
+    end
+end
+
+function moveToDisplayed()
+    local availableList = optionPanel.panelAvailableButtons.displayedAvailableButtonsList
+    local selectedItem = availableList:getFocusedChild()
+
+    if not selectedItem then
+        return
+    end
+
+    local buttonId = selectedItem.buttonId
+    local optionsPanel = optionsController.ui.onPanel.options
+    local button = optionsPanel:getChildById(buttonId)
+
+    if button then
+        button:setVisible(true)
+        buttonConfigs[buttonId].visible = true
+        table.insert(buttonOrder, buttonId)
+        updateDisplayedButtonsList()
+        updateAvailableButtonsList()
+        reorderButtons()
+        saveButtonConfig()
+        reloadMainPanelSizes()
+        availableList:focusNextChild(KeyboardFocusReason)
+    end
+end
+
+function moveButtonUp()
+    if not g_game.isOnline() then
+        return
+    end
+
+    local displayedList = optionPanel.panelDisplayedButtons.displayedButtonsList
+    local selectedItem = displayedList:getFocusedChild()
+
+    if not selectedItem then
+        return
+    end
+
+    local buttonId = selectedItem.buttonId
+    local index = table.find(buttonOrder, buttonId)
+
+    if index and index > 1 then
+        buttonOrder[index], buttonOrder[index - 1] = buttonOrder[index - 1], buttonOrder[index]
+        updateDisplayedButtonsList()
+        reorderButtons()
+        saveButtonConfig()
+        local focusedChild = displayedList:getFocusedChild()
+        if focusedChild then
+            displayedList:ensureChildVisible(focusedChild)
+        end
+    end
+end
+
+function moveButtonDown()
+    if not g_game.isOnline() then
+        return
+    end
+
+    local displayedList = optionPanel.panelDisplayedButtons.displayedButtonsList
+    local selectedItem = displayedList:getFocusedChild()
+
+    if not selectedItem then
+        return
+    end
+
+    local buttonId = selectedItem.buttonId
+    local index = table.find(buttonOrder, buttonId)
+
+    if index and index < #buttonOrder then
+        buttonOrder[index], buttonOrder[index + 1] = buttonOrder[index + 1], buttonOrder[index]
+
+        updateDisplayedButtonsList()
+        reorderButtons()
+        saveButtonConfig()
+        local focusedChild = displayedList:getFocusedChild()
+        if focusedChild then
+            displayedList:ensureChildVisible(focusedChild)
+        end
+    end
+end
+
+function reorderButtons()
+    if not g_game.isOnline() then
+        return
+    end
+    local optionsPanel = optionsController.ui.onPanel.options
+    local children = {}
+    for _, id in ipairs(buttonOrder) do
+        local button = optionsPanel:getChildById(id)
+        if button then
+            table.insert(children, button)
+        end
+    end
+    for _, button in ipairs(optionsPanel:getChildren()) do
+        local id = button:getId()
+        if not table.find(buttonOrder, id) then
+            table.insert(children, button)
+        end
+    end
+    optionsPanel:reorderChildren(children)
+end
+
+function reset()
+    g_settings.setNode('control_buttons', {})
+    buttonConfigs = {}
+    buttonOrder = {}
+    local optionsPanel = optionsController.ui.onPanel.options
+    if optionsPanel then
+        for _, button in ipairs(optionsPanel:getChildren()) do
+            local id = button:getId()
+            if id then
+                button:setVisible(true)
+                buttonConfigs[id] = {
+                    visible = true,
+                    tooltip = button:getTooltip() or id
+                }
+                table.insert(buttonOrder, id)
+            end
+        end
+    end
+    updateDisplayedButtonsList()
+    updateAvailableButtonsList()
+    reorderButtons()
+    reloadMainPanelSizes()
+end
+
+function initControlButtons()
+    local config = loadButtonConfig()
+    buttonConfigs = config.buttons or {}
+    buttonOrder = config.order or {}
+    local currentButtons = {}
+    for _, button in ipairs(optionsController.ui.onPanel.options:getChildren()) do
+        local id = button:getId()
+        if id then
+            currentButtons[id] = true
+            if not buttonConfigs[id] then
+                buttonConfigs[id] = {
+                    visible = button:isVisible(),
+                    tooltip = button:getTooltip() or id
+                }
+
+                if button:isVisible() and not table.find(buttonOrder, id) then
+                    table.insert(buttonOrder, id)
+                end
+            else
+                button:setVisible(buttonConfigs[id].visible)
+            end
+        end
+    end
+
+    local toRemove = {}
+    for id in pairs(buttonConfigs) do
+        if not currentButtons[id] then
+            table.insert(toRemove, id)
+        end
+    end
+
+    for _, id in ipairs(toRemove) do
+        buttonConfigs[id] = nil
+        for i, orderId in ipairs(buttonOrder) do
+            if orderId == id then
+                table.remove(buttonOrder, i)
+                break
+            end
+        end
+    end
+    updateDisplayedButtonsList()
+    updateAvailableButtonsList()
+    reorderButtons()
+    reloadMainPanelSizes()
+end

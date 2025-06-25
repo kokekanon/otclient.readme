@@ -34,6 +34,9 @@
 #include "framework/core/graphicalapplication.h"
 #include "tile.h"
 
+#include <framework/net/packet_player.h>
+#include <framework/net/packet_recorder.h>
+
 Game g_game;
 
 void Game::init()
@@ -55,6 +58,8 @@ void Game::resetGameStates()
     m_serverBeat = 50;
     m_seq = 0;
     m_ping = -1;
+    m_mapUpdatedAt = 0;
+    m_mapUpdateTimer = { true, Timer{} };
     setCanReportBugs(false);
     m_fightMode = Otc::FightBalanced;
     m_chaseMode = Otc::DontChase;
@@ -588,7 +593,7 @@ void Game::processWalkCancel(const Otc::Direction direction)
     m_localPlayer->cancelWalk(direction);
 }
 
-void Game::loginWorld(const std::string_view account, const std::string_view password, const std::string_view worldName, const std::string_view worldHost, const int worldPort, const std::string_view characterName, const std::string_view authenticatorToken, const std::string_view sessionKey)
+void Game::loginWorld(const std::string_view account, const std::string_view password, const std::string_view worldName, const std::string_view worldHost, const int worldPort, const std::string_view characterName, const std::string_view authenticatorToken, const std::string_view sessionKey, const std::string_view& recordTo)
 {
     if (m_protocolGame || isOnline())
         throw Exception("Unable to login into a world while already online or logging.");
@@ -604,9 +609,36 @@ void Game::loginWorld(const std::string_view account, const std::string_view pas
     m_localPlayer->setName(characterName);
 
     m_protocolGame = std::make_shared<ProtocolGame>();
+    if (!recordTo.empty()) {
+        m_protocolGame->setRecorder(std::make_shared<PacketRecorder>(recordTo));
+    }
     m_protocolGame->login(account, password, worldHost, static_cast<uint16_t>(worldPort), characterName, authenticatorToken, sessionKey);
     m_characterName = characterName;
     m_worldName = worldName;
+}
+
+void Game::playRecord(const std::string_view& file)
+{
+    if (m_protocolGame || isOnline())
+        throw Exception("Unable to login into a world while already online or logging.");
+
+    if (m_protocolVersion == 0)
+        throw Exception("Must set a valid game protocol version before logging.");
+
+    auto packetPlayer = std::make_shared<PacketPlayer>(file);
+    if (!packetPlayer)
+        throw Exception("Invalid record file.");
+
+    // reset the new game state
+    resetGameStates();
+
+    m_localPlayer = std::make_shared<LocalPlayer>();
+    m_localPlayer->setName("Player");
+
+    m_protocolGame = std::make_shared<ProtocolGame>();
+    m_protocolGame->playRecord(packetPlayer);
+    m_characterName = "Player";
+    m_worldName = "Record";
 }
 
 void Game::cancelLogin()
@@ -670,12 +702,12 @@ void Game::autoWalk(const std::vector<Otc::Direction>& dirs, const Position& sta
 
     const Otc::Direction direction = *dirs.begin();
     if (const auto& toTile = g_map.getTile(startPos.translatedToDirection(direction))) {
-        if (startPos == m_localPlayer->m_lastPrewalkDestination && toTile->isWalkable() && m_localPlayer->canWalk(direction, true)) {
+        if (m_localPlayer->isPreWalking() && startPos == m_localPlayer->getPosition() && toTile->isWalkable() && !m_localPlayer->isWalking() && m_localPlayer->canWalk(true)) {
             m_localPlayer->preWalk(direction);
         }
     }
 
-    g_lua.callGlobalField("g_game", "onAutoWalk", dirs);
+    g_lua.callGlobalField("g_game", "onAutoWalk", m_localPlayer, dirs);
     m_protocolGame->sendAutoWalk(dirs);
 }
 
@@ -683,6 +715,11 @@ void Game::forceWalk(const Otc::Direction direction)
 {
     if (!canPerformGameAction())
         return;
+
+    if (m_mapUpdateTimer.first || m_localPlayer->m_preWalks.size() == 1) {
+        m_mapUpdateTimer.second.restart();
+        m_mapUpdateTimer.first = false;
+    }
 
     switch (direction) {
         case Otc::North:
@@ -1459,12 +1496,12 @@ void Game::seekInContainer(const uint8_t containerId, const uint16_t index)
     m_protocolGame->sendSeekInContainer(containerId, index);
 }
 
-void Game::buyStoreOffer(const uint32_t offerId, const uint8_t productType, const std::string_view name)
+void Game::buyStoreOffer(const uint32_t offerId, const uint8_t action, const std::string_view& name, const uint8_t type, const std::string_view& location)
 {
     if (!canPerformGameAction())
         return;
 
-    m_protocolGame->sendBuyStoreOffer(offerId, productType, name);
+    m_protocolGame->sendBuyStoreOffer(offerId, action, name, type,location);
 }
 
 void Game::requestTransactionHistory(const uint32_t page, const uint32_t entriesPerPage)
@@ -1475,11 +1512,52 @@ void Game::requestTransactionHistory(const uint32_t page, const uint32_t entries
     m_protocolGame->sendRequestTransactionHistory(page, entriesPerPage);
 }
 
-void Game::requestStoreOffers(const std::string_view categoryName, const uint8_t serviceType)
+void Game::requestStoreOffers(const std::string_view categoryName, const std::string_view subCategory, const uint8_t sortOrder, const uint8_t serviceType)
 {
-    enableBotCall();
-    m_protocolGame->sendRequestStoreOffers(categoryName, serviceType);
-    m_denyBotCall = true;
+    if (!canPerformGameAction())
+        return;
+
+    m_protocolGame->sendRequestStoreOffers(categoryName, subCategory, sortOrder, serviceType);
+}
+
+void Game::sendRequestStoreHome()
+{
+    if (!canPerformGameAction())
+        return;
+
+    m_protocolGame->sendRequestStoreHome();
+}
+
+void Game::sendRequestStorePremiumBoost()
+{
+    if (!canPerformGameAction())
+        return;
+
+    m_protocolGame->sendRequestStorePremiumBoost();
+}
+
+void Game::sendRequestUsefulThings(const uint8_t serviceType)
+{
+    if (!canPerformGameAction())
+        return;
+
+    m_protocolGame->sendRequestUsefulThings(serviceType);
+}
+
+void Game::sendRequestStoreOfferById(const uint32_t offerId, const uint8_t sortOrder, const uint8_t serviceType)
+{
+    if (!canPerformGameAction())
+        return;
+
+    m_protocolGame->sendRequestStoreOfferById(offerId, sortOrder , serviceType);
+}
+
+void Game::sendRequestStoreSearch(const std::string_view searchText, const uint8_t sortOrder, const uint8_t serviceType)
+{
+    if (!canPerformGameAction())
+        return;
+
+    m_protocolGame->sendRequestStoreSearch(searchText, sortOrder, serviceType);
 }
 
 void Game::openStore(const uint8_t serviceType, const std::string_view category)
@@ -1549,7 +1627,7 @@ void Game::setProtocolVersion(const uint16_t version)
         throw Exception("Unable to change protocol version while online");
 
     if (version != 0 && (version < 740 || version > g_gameConfig.getLastSupportedVersion()))
-        throw Exception("Protocol version %d not supported", version);
+        throw Exception("Protocol version {} not supported", version);
 
     m_protocolVersion = version;
 
@@ -1567,7 +1645,7 @@ void Game::setClientVersion(const uint16_t version)
         throw Exception("Unable to change client version while online");
 
     if (version != 0 && (version < 740 || version > g_gameConfig.getLastSupportedVersion()))
-        throw Exception("Client version %d not supported", version);
+        throw Exception("Client version {} not supported", version);
 
     m_features.reset();
 
@@ -1760,18 +1838,30 @@ void Game::requestBless()
     m_protocolGame->sendRequestBless();
 }
 
+void Game::sendQuickLoot(const uint8_t variant, const ItemPtr& item)
+{
+    if (!canPerformGameAction())
+        return;
+
+    Position pos = (item && item->getPosition().isValid()) ? item->getPosition() : Position(0, 0, 0);
+    uint16_t itemId = item ? item->getId() : 0;
+    uint8_t stackPos = item ? item->getStackPos() : 0;
+    m_protocolGame->sendQuickLoot(variant, pos, itemId, stackPos);
+}
+
 void Game::requestQuickLootBlackWhiteList(const uint8_t filter, const uint16_t size, const std::vector<uint16_t>& listedItems)
 {
-    enableBotCall();
+    if (!canPerformGameAction())
+        return;
+
     m_protocolGame->requestQuickLootBlackWhiteList(filter, size, listedItems);
-    disableBotCall();
 }
 
 void Game::openContainerQuickLoot(const uint8_t action, const uint8_t category, const Position& pos, const uint16_t itemId, const uint8_t stackpos, const bool useMainAsFallback)
 {
-    enableBotCall();
+    if (!canPerformGameAction())
+        return;
     m_protocolGame->openContainerQuickLoot(action, category, pos, itemId, stackpos, useMainAsFallback);
-    disableBotCall();
 }
 
 void Game::sendGmTeleport(const Position& pos)
@@ -1872,7 +1962,40 @@ void Game::requestBossSlotAction(const uint8_t action, const uint32_t raceId)
 
 void Game::sendStatusTrackerBestiary(const uint16_t raceId, const bool status)
 {
-    enableBotCall();
+    if (!canPerformGameAction())
+        return;
+
     m_protocolGame->sendStatusTrackerBestiary(raceId, status);
-    disableBotCall();
+}
+
+void Game::sendOpenRewardWall()
+{
+    if (!canPerformGameAction())
+        return;
+
+    m_protocolGame->sendOpenRewardWall();
+}
+
+void Game::requestOpenRewardHistory()
+{
+    if (!canPerformGameAction())
+        return;
+
+    m_protocolGame->sendOpenRewardHistory();
+}
+
+void Game::requestGetRewardDaily(const uint8_t bonusShrine, const std::map<uint16_t, uint8_t>& items)
+{
+    if (!canPerformGameAction())
+        return;
+
+    m_protocolGame->sendGetRewardDaily(bonusShrine, items);
+}
+
+void Game::sendRequestTrackerQuestLog(const std::map<uint16_t, std::string>& quests)
+{
+    if (!canPerformGameAction())
+        return;
+
+    m_protocolGame->sendRequestTrackerQuestLog(quests);
 }

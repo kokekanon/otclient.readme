@@ -74,12 +74,18 @@ void Creature::draw(const Point& dest, const bool drawThings, const LightViewPtr
 
         const auto& _dest = dest + m_walkOffset * g_drawPool.getScaleFactor();
 
+        auto oldScaleFactor = g_drawPool.getScaleFactor();
+
+        g_drawPool.setScaleFactor(getScaleFactor() + (oldScaleFactor - 1.f));
+
         internalDraw(_dest);
 
         if (isMarked())
             internalDraw(_dest, getMarkedColor());
         else if (isHighlighted())
             internalDraw(_dest, getHighlightColor());
+
+        g_drawPool.setScaleFactor(oldScaleFactor);
     }
 
     // drawLight(dest, lightView);
@@ -107,7 +113,7 @@ void Creature::drawLight(const Point& dest, const LightViewPtr& lightView) {
 
 void Creature::draw(const Rect& destRect, const uint8_t size, const bool center)
 {
-    if (!getThingType())
+    if (!canDraw())
         return;
 
     uint8_t frameSize = getExactSize();
@@ -129,11 +135,11 @@ void Creature::draw(const Rect& destRect, const uint8_t size, const bool center)
 
 void Creature::drawInformation(const MapPosInfo& mapRect, const Point& dest, const int drawFlags)
 {
-    static const Color
+    static constexpr Color
         DEFAULT_COLOR(96, 96, 96),
         NPC_COLOR(0x66, 0xcc, 0xff);
 
-    if (isDead() || !canBeSeen() || !(drawFlags & Otc::DrawCreatureInfo) || !mapRect.isInRange(m_position))
+    if (isDead() || !canBeSeen() || !(drawFlags & Otc::DrawCreatureInfo) || !mapRect.isInRange(getPosition()))
         return;
 
     if (g_gameConfig.isDrawingInformationByWidget()) {
@@ -440,7 +446,7 @@ void Creature::updateJump()
 
     m_jumpOffset = PointF(height, height);
 
-    if (isLocalPlayer()) {
+    if (isCameraFollowing()) {
         g_map.notificateCameraMove(m_walkOffset);
     }
 
@@ -482,7 +488,7 @@ void Creature::onAppear()
         m_disappearEvent = nullptr;
     }
 
-    if (isLocalPlayer() && m_position != m_oldPosition) {
+    if (isCameraFollowing() && m_position != m_oldPosition) {
         g_map.notificateCameraMove(m_walkOffset);
     }
 
@@ -614,7 +620,7 @@ void Creature::updateWalkingTile()
 
             // only render creatures where bottom right is inside tile rect
             if (virtualTileRect.contains(virtualCreatureRect.bottomRight())) {
-                newWalkingTile = g_map.getOrCreateTile(m_position.translated(xi, yi, 0));
+                newWalkingTile = g_map.getOrCreateTile(getPosition().translated(xi, yi, 0));
             }
         }
     }
@@ -628,7 +634,8 @@ void Creature::updateWalkingTile()
 
     if (newWalkingTile) {
         newWalkingTile->addWalkingCreature(self);
-        g_map.notificateTileUpdate(newWalkingTile->getPosition(), self, Otc::OPERATION_CLEAN);
+        if (isCameraFollowing())
+            g_map.notificateTileUpdate(newWalkingTile->getPosition(), self, Otc::OPERATION_CLEAN);
     }
 
     m_walkingTile = newWalkingTile;
@@ -642,6 +649,7 @@ void Creature::nextWalkUpdate()
 
     // do the update
     updateWalk();
+    onWalking();
 
     if (!m_walking) return;
 
@@ -650,12 +658,14 @@ void Creature::nextWalkUpdate()
         self->nextWalkUpdate();
     };
 
-    m_walkUpdateEvent = isLocalPlayer() ? g_dispatcher.addEvent(action) : g_dispatcher.scheduleEvent(action, m_stepCache.walkDuration);
+    m_walkUpdateEvent = isCameraFollowing() ? g_dispatcher.addEvent(action) : g_dispatcher.scheduleEvent(action, m_stepCache.walkDuration);
 }
 
-void Creature::updateWalk(const bool isPreWalking)
+void Creature::updateWalk()
 {
-    const float walkTicksPerPixel = (getStepDuration(true) + 8.f) / static_cast<float>(g_gameConfig.getSpriteSize());
+    const int stepDuration = getStepDuration(true);
+    const float stabilizeCam = isCameraFollowing() && g_window.vsyncEnabled() ? 6.f : 0.f;
+    const float walkTicksPerPixel = (stepDuration + stabilizeCam) / static_cast<float>(g_gameConfig.getSpriteSize());
 
     const int totalPixelsWalked = std::min<int>(m_walkTimer.ticksElapsed() / walkTicksPerPixel, g_gameConfig.getSpriteSize());
 
@@ -668,11 +678,11 @@ void Creature::updateWalk(const bool isPreWalking)
     updateWalkOffset(m_walkedPixels);
     updateWalkingTile();
 
-    if (isLocalPlayer() && oldWalkOffset != m_walkOffset) {
+    if (isCameraFollowing() && oldWalkOffset != m_walkOffset) {
         g_map.notificateCameraMove(m_walkOffset);
     }
 
-    if (m_walkedPixels == g_gameConfig.getSpriteSize() && !isPreWalking) {
+    if (m_walkedPixels == g_gameConfig.getSpriteSize()) {
         terminateWalk();
     }
 }
@@ -709,7 +719,7 @@ void Creature::terminateWalk()
 
 void Creature::setHealthPercent(const uint8_t healthPercent)
 {
-    static const Color
+    static constexpr Color
         COLOR1(0x00, 0xBC, 0x00),
         COLOR2(0x50, 0xA1, 0x50),
         COLOR3(0xA1, 0xA1, 0x00),
@@ -918,9 +928,11 @@ uint16_t Creature::getStepDuration(const bool ignoreDiagonal, const Otc::Directi
         return 0;
 
     const auto& tilePos = dir == Otc::InvalidDirection ?
-        m_lastStepToPosition : m_position.translatedToDirection(dir);
+        m_lastStepToPosition : getPosition().translatedToDirection(dir);
 
-    const auto& tile = g_map.getTile(tilePos.isValid() ? tilePos : m_position);
+    const auto& tile = g_map.getTile(tilePos.isValid() ? tilePos : getPosition());
+
+    const int serverBeat = g_game.getServerBeat();
 
     int groundSpeed = 0;
     if (tile) groundSpeed = tile->getGroundSpeed();
@@ -937,7 +949,6 @@ uint16_t Creature::getStepDuration(const bool ignoreDiagonal, const Otc::Directi
         } else stepDuration /= m_speed;
 
         if (g_gameConfig.isForcingNewWalkingFormula() || g_game.getClientVersion() >= 860) {
-            const int serverBeat = g_game.getServerBeat();
             stepDuration = ((stepDuration + serverBeat - 1) / serverBeat) * serverBeat;
         }
 
@@ -951,7 +962,17 @@ uint16_t Creature::getStepDuration(const bool ignoreDiagonal, const Otc::Directi
                 : 2);
     }
 
-    return ignoreDiagonal ? m_stepCache.duration : m_stepCache.getDuration(m_lastStepDirection);
+    auto duration = ignoreDiagonal ? m_stepCache.duration : m_stepCache.getDuration(m_lastStepDirection);
+
+    if (isCameraFollowing() && g_game.getFeature(Otc::GameLatencyAdaptiveCamera) && static_self_cast<LocalPlayer>()->isPreWalking()) {
+        if (m_lastMapDuration == -1)
+            m_lastMapDuration = ((g_game.mapUpdatedAt() + 9) / 10) * 10;
+
+        // stabilizes camera transition with server response time to keep movement fluid.
+        duration = std::max<int>(duration, m_lastMapDuration);
+    }
+
+    return duration;
 }
 
 Point Creature::getDisplacement() const
@@ -1000,11 +1021,11 @@ const Light& Creature::getLight() const
 }
 
 ThingType* Creature::getThingType() const {
-    return g_things.getThingType(m_outfit.isCreature() ? m_outfit.getId() : m_outfit.getAuxId(), m_outfit.getCategory()).get();
+    return g_things.getRawThingType(m_outfit.isCreature() ? m_outfit.getId() : m_outfit.getAuxId(), m_outfit.getCategory());
 }
 
 ThingType* Creature::getMountThingType() const {
-    return m_outfit.hasMount() ? g_things.getThingType(m_outfit.getMount(), ThingCategoryCreature).get() : nullptr;
+    return m_outfit.hasMount() ? g_things.getRawThingType(m_outfit.getMount(), ThingCategoryCreature) : nullptr;
 }
 
 uint16_t Creature::getCurrentAnimationPhase(const bool mount)
@@ -1114,6 +1135,9 @@ void Creature::onStartDetachEffect(const AttachedEffectPtr& effect) {
 }
 
 void Creature::setStaticWalking(const uint16_t v) {
+    if (!canDraw())
+        return;
+
     if (m_walkUpdateEvent) {
         m_walkUpdateEvent->cancel();
         m_walkUpdateEvent = nullptr;

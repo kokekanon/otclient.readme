@@ -27,10 +27,18 @@ function quickLootController:onInit()
     quickLootController:registerEvents(g_game, {
         onQuickLootContainers = QuickLoot.start
     })
+    Keybind.new("Loot", "Quick Loot Nearby Corpses", "Alt+Q", "")
+    Keybind.bind("Loot", "Quick Loot Nearby Corpses", {
+      {
+        type = KEY_DOWN,
+        callback = function() g_game.sendQuickLoot(2) end,
+      }
+    })
 
 end
 
 function quickLootController:onTerminate()
+    Keybind.delete("Loot", "Quick Loot Nearby Corpses")
     if QuickLoot.mouseGrabberWidget then
         QuickLoot.mouseGrabberWidget:destroy()
         QuickLoot.mouseGrabberWidget = nil
@@ -43,9 +51,9 @@ function quickLootController:onGameStart()
     if not g_game.getFeature(GameThingQuickLoot) then
         return
     end
-
-    QuickLoot.mouseGrabberWidget = g_ui.createWidget("UIWidget")
-
+    if not QuickLoot.mouseGrabberWidget then
+        QuickLoot.mouseGrabberWidget = g_ui.createWidget("UIWidget")
+    end
     QuickLoot.mouseGrabberWidget:setVisible(false)
     QuickLoot.mouseGrabberWidget:setFocusable(false)
 
@@ -413,6 +421,9 @@ function QuickLoot.Define()
         end
         QuickLoot.show()
         QuickLoot.loadFilterItems()
+        if QuickLoot.data.filter == 2 and not quickLootController.ui.filters.accepted:isChecked() then
+            quickLootController.ui.filters.accepted:onClick()
+        end
     end
 
     function QuickLoot.show()

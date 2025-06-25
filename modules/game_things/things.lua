@@ -33,14 +33,6 @@ function load(version)
             errorList[#errorList + 1] = localize('ThingsStaticDataLoadingFailed')
         end
     else
-        if g_game.getFeature(GameLoadSprInsteadProtobuf) then
-            local warningBox = displayErrorBox(localize('Warning'),
-                localize('ThingsProtocolSpritesWarning'))
-            addEvent(function()
-                warningBox:raise()
-                warningBox:focus()
-            end)
-        end
         local datPath, sprPath
         if filename then
             datPath = resolvepath('/data/things/' .. filename)
@@ -55,6 +47,12 @@ function load(version)
         end
         if not g_sprites.loadSpr(sprPath) then
             errorList[#errorList + 1] = localize('ThingsSprLoadingFailed', sprPath)
+        end
+        if g_game.getFeature(GameLoadSprInsteadProtobuf) and version >= 1281 then
+            local staticPath = resolvepath(string.format('/things/%d/appearances', version))
+            if not g_things.loadAppearances(staticPath) then
+                g_logger.warning(string.format("[game_things.load()] Couldn't load /things/%d/appearances.dat, possible packets error.", version))
+            end
         end
     end
 

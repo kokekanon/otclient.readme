@@ -1,7 +1,10 @@
+local iconTopMenu = nil
+
 local inventoryShrink = false
 local itemSlotsWithDuration = {}
 local updateSlotsDurationEvent = nil
 local DURATION_UPDATE_INTERVAL = 1000
+local pvpModeRadioGroup = nil 
 
 local function getInventoryUi()
     if inventoryShrink then
@@ -87,7 +90,7 @@ end
 local function walkEvent()
     if modules.client_options.getOption('autoChaseOverride') then
         if g_game.isAttacking() and g_game.getChaseMode() == ChaseOpponent then
-            selectPosture('stand', true)
+            selectPosture('stand', false)
         end
     end
 end
@@ -278,6 +281,21 @@ function inventoryController:onInit()
 end
 
 function inventoryController:onGameStart()
+    local player = g_game.getLocalPlayer()
+    if player then
+        local char = g_game.getCharacterName()
+        local lastCombatControls = g_settings.getNode('LastCombatControls')
+        if not table.empty(lastCombatControls) then
+            if lastCombatControls[char] then
+                g_game.setFightMode(lastCombatControls[char].fightMode)
+                g_game.setChaseMode(lastCombatControls[char].chaseMode)
+                g_game.setSafeFight(lastCombatControls[char].safeFight)
+                if lastCombatControls[char].pvpMode then
+                    g_game.setPVPMode(lastCombatControls[char].pvpMode)
+                end
+            end
+        end
+    end
     inventoryController:registerEvents(LocalPlayer, {
         onInventoryChange = inventoryEvent,
         onSoulChange = onSoulChange,
@@ -324,6 +342,38 @@ end
 
 function inventoryController:onGameEnd()
     stopEvent()
+
+    local lastCombatControls = g_settings.getNode('LastCombatControls')
+    if not lastCombatControls then
+        lastCombatControls = {}
+    end
+    local player = g_game.getLocalPlayer()
+    if player then
+        local char = g_game.getCharacterName()
+        lastCombatControls[char] = {
+            fightMode = g_game.getFightMode(),
+            chaseMode = g_game.getChaseMode(),
+            safeFight = g_game.isSafeFight()
+        }
+        if g_game.getFeature(GamePVPMode) then
+            lastCombatControls[char].pvpMode = g_game.getPVPMode()
+        end
+        g_settings.setNode('LastCombatControls', lastCombatControls)
+    end
+end
+
+function inventoryController:onTerminate()
+    if iconTopMenu then
+        iconTopMenu:destroy()
+        iconTopMenu = nil
+    end
+    if pvpModeRadioGroup then
+        disconnect(pvpModeRadioGroup, {
+            onSelectionChange = onSetPVPMode
+        })
+        pvpModeRadioGroup:destroy()
+        pvpModeRadioGroup = nil
+    end
 end
 
 function onSetSafeFight(self, checked)
@@ -442,5 +492,41 @@ function reloadInventory()
                 inventoryEvent(player, slot, player:getInventoryItem(slot))
             end
         end
+    end
+end
+
+function extendedView(extendedView)
+    if extendedView then
+        if not iconTopMenu then
+            iconTopMenu = modules.client_topmenu.addTopRightToggleButton('inventory', tr('Show inventory'),
+                '/images/topbuttons/inventory', toggle)
+            iconTopMenu:setOn(inventoryController.ui:isVisible())
+            inventoryController.ui:setBorderColor('black')
+            inventoryController.ui:setBorderWidth(2)
+        end
+    else
+        if iconTopMenu then
+            iconTopMenu:destroy()
+            iconTopMenu = nil
+        end
+        inventoryController.ui:setBorderColor('alpha')
+        inventoryController.ui:setBorderWidth(0)
+        local mainRightPanel = modules.game_interface.getMainRightPanel()
+        if not mainRightPanel:hasChild(inventoryController.ui) then
+            mainRightPanel:insertChild(3, inventoryController.ui)
+        end
+        inventoryController.ui:show(true)
+    end
+    inventoryController.ui.moveOnlyToMain = not extendedView
+
+end
+
+function toggle()
+    if iconTopMenu:isOn() then
+        inventoryController.ui:hide()
+        iconTopMenu:setOn(false)
+    else
+        inventoryController.ui:show()
+        iconTopMenu:setOn(true)
     end
 end

@@ -1,4 +1,4 @@
-DeathWindow < MainWindow
+MainWindow
   id: deathWindow
   !text: localize('DeathWindowTitle')
   &baseWidth: 350

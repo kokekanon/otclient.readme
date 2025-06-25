@@ -47,6 +47,9 @@ function startup()
     else
         EnterGame.firstShow()
     end
+    if g_app.hasUpdater() and g_sounds then
+        g_sounds.setAudioEnabled(g_settings.getBoolean('enableAudio'))
+    end
 end
 
 function init()

@@ -35,6 +35,7 @@ return {
     showPrivateMessagesInConsole      = true,
     showOthersStatusMessagesInConsole = false,
     showPrivateMessagesOnScreen       = true,
+    showLootMessagesOnScreen          = true,
     showOutfitsOnList                 = {
         value = true,
         action = function(value, options, controller, panels, extraWidgets)
@@ -221,7 +222,7 @@ return {
         end
     },
     forceEffectOptimization           = {
-        value = true,
+        value = false,
         action = function(value, options, controller, panels, extraWidgets)
             g_app.forceEffectOptimization(value)
         end
