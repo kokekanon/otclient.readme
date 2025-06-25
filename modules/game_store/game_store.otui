@@ -172,7 +172,7 @@ StoreWindow
     Label
       anchors.bottom: parent.bottom
       anchors.left: prev.right
-      !text: ")"
+      text: ")"
       focusable: false
       phantom: true
       margin-left:5

@@ -26,16 +26,19 @@ function Locale.new(languageName, languageCode)
 	return self
 end
 
--- class fields
 local fields = {
-	'languageName',
-	'languageCode',
-	'charset',
-	'formatNumbers',
-	'decimalSeperator',
-	'thousandsSeperator',
-	'translations',
-	'authors'
+        'languageName',
+        'languageCode',
+        -- compatibility aliases
+        'name',
+        'charset',
+        'formatNumbers',
+        'decimalSeperator',
+        'thousandsSeperator',
+        'translations',
+        -- alias used by old locale tables
+        'translation',
+        'authors'
 }
 
 -- create fields
@@ -44,12 +47,23 @@ local fields = {
 -- example get: locale:charset()
 -- example set: locale:charset("cp1252")
 for _, key in ipairs(fields) do
-	local innerKey = string.format("_%s", key)
-	Locale[key] = function(self, value)
-		self[innerKey] = value
-	end
+        local innerKey = string.format("_%s", key)
+        Locale[key] = function(self, value)
+                if value == nil then
+                        return self[innerKey]
+                end
+                self[innerKey] = value
+        end
 end
 
+-- compatibility aliases
+function Locale:name(value)
+        return Locale.languageCode(self, value)
+end
+
+function Locale:translation(value)
+        return Locale.translations(self, value)
+end
 -- get/set localized string
 -- get: locale:translate(key)
 -- set: locale:translate(key, value)
@@ -80,12 +94,18 @@ function Locale:removeTranslation(key)
 	-- key was not found, push false
 	return false
 end
+function Locale:normalize()
+    if not self._translations then
+        self._translations = self.translation or {}
+    end
+    self.translation = self._translations
+end
 
 -- register locale
 -- locale:register()
 function Locale:register()
-	-- fetch the language code
-	local langCode = self:languageCode()
+        -- fetch the language code
+        local langCode = self:languageCode()
 
 	-- if "allowedLocales" table is defined,
 	-- the locales that are not present in it won't be created
@@ -94,18 +114,30 @@ function Locale:register()
 	end
 
 	-- check if the locale was already installed
+    installedLocales = installedLocales or {}
+    self:normalize()
     local installedLocale = installedLocales[langCode]
 
-	-- first load scenario
-	if not installedLocale then
-		installedLocales[locale.name] = locale
-		return true
-	end
+    -- first load scenario
+    if not installedLocale then
+        installedLocales[langCode] = self
+        return true
+    end
 
-	-- reload scenario
-	for word, translation in pairs(locale:translations()) do
-		installedLocale.translations[word] = translation
-	end
+    -- ensure target locale has translations table
+    if installedLocale.normalize then
+        installedLocale:normalize()
+    else
+        if not installedLocale._translations then
+            installedLocale._translations = installedLocale.translation or {}
+        end
+        installedLocale.translation = installedLocale._translations
+    end
+
+    -- reload scenario
+    for word, translation in pairs(self._translations) do
+        installedLocale._translations[word] = translation
+    end
 
 	-- push the function result
 	return true

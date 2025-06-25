@@ -1,27 +1,26 @@
 dofile 'neededtranslations'
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+dofile 'locale'
 -- private variables
 local defaultLocaleName = 'en'
-local installedLocales
+-- helper to fetch locale code compatible with old tables
+installedLocales = {}
+-- ensure locale object always has a _translations table for faster lookups
+local function normalizeLocale(locale)
+    if not locale._translations then
+        locale._translations = locale.translation or {}
+    end
+    locale.translation = locale._translations
+end
+-- helper to fetch locale code compatible with old tables
+local function getLocaleCode(locale)
+    if locale.name then
+        return locale.name
+    end
+    if type(locale.languageCode) == 'function' then
+        return locale:languageCode()
+    end
+    return locale.languageCode
+end
 local currentLocale
 
 function sendLocale(localeName)
@@ -44,7 +43,8 @@ function createWindow()
     for name, locale in pairs(installedLocales) do
         local widget = g_ui.createWidget('LocalesButton', localesPanel)
         widget:setImageSource('/images/flags/' .. name .. '')
-        widget:setText(locale.languageName)
+        local langName = locale.languageName or (type(locale.languageName) == 'function' and locale:languageName())
+        widget:setText(langName)
         widget.onClick = function()
             selectFirstLocale(name)
         end
@@ -74,12 +74,12 @@ end
 
 -- hooked functions
 function onGameStart()
-    sendLocale(currentLocale.name)
+    sendLocale(getLocaleCode(currentLocale))
 end
 
 function onExtendedLocales(protocol, opcode, buffer)
     local locale = installedLocales[buffer]
-    if locale and setLocale(locale.name) then
+    if locale and setLocale(getLocaleCode(locale)) then
         g_modules.reloadModules()
     end
 end
@@ -97,11 +97,11 @@ function init()
         setLocale(defaultLocaleName)
         if g_app.hasUpdater() then
             connect(g_app, {
-                onUpdateFinished = createWindow,
+                onUpdateFinished = createWindow
             })
         else
             connect(g_app, {
-                onRun = createWindow,
+                onRun = createWindow
             })
         end
     end
@@ -119,11 +119,11 @@ function terminate()
     ProtocolGame.unregisterExtendedOpcode(ExtendedIds.Locale)
     if g_app.hasUpdater() then
         disconnect(g_app, {
-            onUpdateFinished = createWindow,
+            onUpdateFinished = createWindow
         })
     else
         disconnect(g_app, {
-            onRun = createWindow,
+            onRun = createWindow
         })
     end
     disconnect(g_game, {
@@ -152,15 +152,16 @@ function generateNewTranslationTable(localename)
 end
 
 function installLocale(locale)
-    if not locale or not locale.name then
+    local code = getLocaleCode(locale)
+    if not locale or not code then
         error('Unable to install locale.')
     end
 
-    if _G.allowedLocales and not _G.allowedLocales[locale.name] then
+    if _G.allowedLocales and not _G.allowedLocales[code] then
         return
     end
 
-    if locale.name ~= defaultLocaleName then
+    if code ~= defaultLocaleName then
         local updatesNamesMissing = {}
         for _, k in pairs(neededTranslations) do
             if locale.translation[k] == nil then
@@ -169,20 +170,22 @@ function installLocale(locale)
         end
 
         if #updatesNamesMissing > 0 then
-            pdebug('Locale \'' .. locale.name .. '\' is missing ' .. #updatesNamesMissing .. ' translations.')
+            pdebug('Locale \'' .. code .. '\' is missing ' .. #updatesNamesMissing .. ' translations.')
             for _, name in pairs(updatesNamesMissing) do
                 pdebug('["' .. name .. '"] = \"\",')
             end
         end
     end
 
-    local installedLocale = installedLocales[locale.name]
+    normalizeLocale(locale)
+    local installedLocale = installedLocales[code]
     if installedLocale then
-        for word, translation in pairs(locale.translation) do
-            installedLocale.translation[word] = translation
+        normalizeLocale(installedLocale)
+        for word, translation in pairs(locale._translations) do
+            installedLocale._translations[word] = translation
         end
     else
-        installedLocales[locale.name] = locale
+        installedLocales[code] = locale
     end
 end
 
@@ -200,8 +203,9 @@ function setLocale(name)
         pwarning('Locale ' .. name .. ' does not exist.')
         return false
     end
+    normalizeLocale(locale)
     if currentLocale then
-        sendLocale(locale.name)
+        sendLocale(getLocaleCode(locale))
     end
     currentLocale = locale
     g_settings.set('locale', name)
@@ -210,7 +214,6 @@ function setLocale(name)
     end
     return true
 end
-
 function getInstalledLocales()
     return installedLocales
 end
@@ -239,16 +242,28 @@ function _G.localize(text, ...)
             end
             return out:reverse()
         elseif tostring(text) then
-            local translation = currentLocale.translation[text]
-            if not translation then
-                if translation == nil then
-                    if currentLocale.name ~= defaultLocaleName then
-                        pdebug('Unable to translate: \"' .. text .. '\"')
-                    end
+            local translation = currentLocale._translations[text]
+            if translation == nil then
+                local defaultLocale = installedLocales[defaultLocaleName]
+                if defaultLocale then
+                    normalizeLocale(defaultLocale)
+                    translation = defaultLocale._translations[text]
                 end
-                translation = text
+                if translation == nil then
+                    if getLocaleCode(currentLocale) ~= defaultLocaleName then
+                        pdebug('Unable to translate: "' .. text .. '"')
+                    end
+                    translation = text
+                end
             end
-            return string.format(translation, ...)
+            local args = {...}
+            if #args > 0 then
+                translation = translation:gsub('%%(%d)', function(idx)
+                    idx = tonumber(idx)
+                    return args[idx] or ''
+                end)
+            end
+            return translation
         end
     end
     return text

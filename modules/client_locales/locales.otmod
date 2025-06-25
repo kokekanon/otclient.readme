@@ -4,6 +4,6 @@ Module
   author: baxnie, edubart
   website: https://github.com/edubart/otclient
   sandboxed: true
-  scripts: [ locales ]
+  scripts: [ locales, locale ]
   @onLoad: init()
   @onUnload: terminate()
