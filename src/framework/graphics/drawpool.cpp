@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2024 OTClient <https://github.com/edubart/otclient>
+ * Copyright (c) 2010-2025 OTClient <https://github.com/edubart/otclient>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,7 @@
  */
 
 #include "drawpool.h"
+#include "textureatlas.h"
 
 DrawPool* DrawPool::create(const DrawPoolType type)
 {
@@ -47,8 +48,14 @@ DrawPool* DrawPool::create(const DrawPoolType type)
     return pool;
 }
 
-void DrawPool::add(const Color& color, const TexturePtr& texture, DrawMethod&& method, const DrawConductor& conductor, const CoordsBufferPtr& coordsBuffer)
+void DrawPool::add(const Color& color, TexturePtr texture, DrawMethod&& method, const DrawConductor& conductor, const CoordsBufferPtr& coordsBuffer)
 {
+    if (method.src.isValid() && texture && texture->isCached(m_atlas->getType())) {
+        const auto& atlas = texture->getAtlas(m_atlas->getType());
+        method.src = Rect(atlas.x + method.src.x(), atlas.y + method.src.y(), method.src.width(), method.src.height());
+        texture = m_atlas->getTexture(atlas.z);
+    }
+
     if (!updateHash(method, texture, color, coordsBuffer != nullptr))
         return;
 
@@ -177,9 +184,18 @@ bool DrawPool::updateHash(const DrawMethod& method, const TexturePtr& texture, c
 DrawPool::PoolState DrawPool::getState(const TexturePtr& texture, const Color& color)
 {
     PoolState copy = getCurrentState();
-    copy.texture = texture;
-    if (copy.color != color)
-        copy.color = color;
+
+    if (copy.color != color) copy.color = color;
+
+    if (texture) {
+        if (texture->isEmpty() || !texture->canCacheInAtlas() || texture->canCacheInAtlas() && m_atlas) {
+            copy.texture = texture;
+        } else {
+            copy.textureId = texture->getId();
+            copy.textureMatrixId = texture->getTransformMatrixId();
+        }
+    }
+
     return copy;
 }
 
@@ -246,7 +262,7 @@ void DrawPool::resetState()
 
 bool DrawPool::canRepaint()
 {
-    if (m_repaint)
+    if (isDrawState(DrawPoolState::READY) || isDrawState(DrawPoolState::DRAWING))
         return false;
 
     uint16_t refreshDelay = m_refreshDelay;
@@ -313,7 +329,7 @@ void DrawPool::popTransformMatrix()
     m_transformMatrixStack.pop_back();
 }
 
-void DrawPool::PoolState::execute() const {
+void DrawPool::PoolState::execute(DrawPool* pool) const {
     g_painter->setColor(color);
     g_painter->setOpacity(opacity);
     g_painter->setCompositionMode(compositionMode);
@@ -322,8 +338,14 @@ void DrawPool::PoolState::execute() const {
     g_painter->setShaderProgram(shaderProgram);
     g_painter->setTransformMatrix(transformMatrix);
     if (action) action();
-    if (texture)
-        g_painter->setTexture(texture->create());
+    if (texture) {
+        texture->create();
+        g_painter->setTexture(texture);
+        if (texture->canCacheInAtlas() && pool->m_atlas && !texture->isCached(pool->m_atlas->getType())) {
+            pool->m_atlas->addTexture(texture);
+        }
+    } else
+        g_painter->setTexture(textureId, textureMatrixId);
 }
 
 void DrawPool::setFramebuffer(const Size& size) {
@@ -362,7 +384,7 @@ void DrawPool::bindFrameBuffer(const Size& size, const Color& color)
     addAction([this, size, frameIndex = m_bindedFramebuffers] {
         static const PoolState state;
 
-        state.execute();
+        state.execute(this);
 
         const auto& frame = getTemporaryFrameBuffer(frameIndex);
         frame->resize(size);
@@ -376,7 +398,7 @@ void DrawPool::releaseFrameBuffer(const Rect& dest)
     addAction([this, dest, frameIndex = m_bindedFramebuffers, drawState = getCurrentState()] {
         const auto& frame = getTemporaryFrameBuffer(frameIndex);
         frame->release();
-        drawState.execute();
+        drawState.execute(this);
         frame->draw(dest);
     });
 

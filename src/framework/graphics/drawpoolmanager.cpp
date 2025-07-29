@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2024 OTClient <https://github.com/edubart/otclient>
+ * Copyright (c) 2010-2025 OTClient <https://github.com/edubart/otclient>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@
 #include "declarations.h"
 #include "drawpool.h"
 #include "graphics.h"
+#include "textureatlas.h"
 
 thread_local static uint8_t CURRENT_POOL = static_cast<uint8_t>(DrawPoolType::LAST);
 
@@ -38,9 +39,24 @@ void DrawPoolManager::init(const uint16_t spriteSize)
     if (spriteSize != 0)
         m_spriteSize = spriteSize;
 
+    auto atlasMap = std::make_shared<TextureAtlas>(Fw::TextureAtlasType::MAP);
+    auto atlasForeground = std::make_shared<TextureAtlas>(Fw::TextureAtlasType::FOREGROUND, 4096, 4096);
+
     // Create Pools
     for (int8_t i = -1; ++i < static_cast<uint8_t>(DrawPoolType::LAST);) {
-        m_pools[i] = DrawPool::create(static_cast<DrawPoolType>(i));
+        auto pool = m_pools[i] = DrawPool::create(static_cast<DrawPoolType>(i));
+
+        switch (static_cast<DrawPoolType>(i)) {
+            case DrawPoolType::MAP:
+                pool->m_atlas = atlasMap;
+                break;
+
+            case DrawPoolType::FOREGROUND:
+            case DrawPoolType::FOREGROUND_MAP:
+            case DrawPoolType::CREATURE_INFORMATION:
+                pool->m_atlas = atlasForeground;
+                break;
+        }
     }
 }
 
@@ -70,12 +86,12 @@ void DrawPoolManager::draw()
     }
 }
 
-void DrawPoolManager::drawObject(const DrawPool::DrawObject& obj)
+void DrawPoolManager::drawObject(DrawPool* pool, const DrawPool::DrawObject& obj)
 {
     if (obj.action) {
         obj.action();
     } else {
-        obj.state.execute();
+        obj.state.execute(pool);
         g_painter->drawCoords(*obj.coords, DrawMode::TRIANGLES);
     }
 }
@@ -168,7 +184,7 @@ void DrawPoolManager::preDraw(const DrawPoolType type, const std::function<void(
     select(type);
     const auto pool = getCurrentPool();
 
-    if (pool->m_repaint.load()) {
+    if (pool->isDrawState(DrawPoolState::READY) || pool->isDrawState(DrawPoolState::DRAWING)) {
         resetSelectedPool();
         return;
     }
@@ -177,21 +193,51 @@ void DrawPoolManager::preDraw(const DrawPoolType type, const std::function<void(
 
     if (f) f();
 
-    std::scoped_lock l(pool->m_mutexDraw);
-
     if (beforeRelease)
         beforeRelease();
 
-    if (pool->hasFrameBuffer())
-        pool->m_framebuffer->prepare(dest, src, colorClear);
+    if (alwaysDraw)
+        pool->repaint();
 
-    pool->release(pool->m_repaint = alwaysDraw || pool->canRepaint());
-
-    if (pool->m_repaint) {
-        pool->m_refreshTimer.restart();
+    if (pool->hasFrameBuffer()) {
+        addAction([pool, dest, src, colorClear] {
+            pool->m_framebuffer->prepare(dest, src, colorClear);
+        });
     }
 
+    pool->release();
+
     resetSelectedPool();
+}
+
+void DrawPoolManager::drawObjects(DrawPool* pool) {
+    const auto hasFramebuffer = pool->hasFrameBuffer();
+
+    if (!pool->isDrawState(DrawPoolState::READY) && hasFramebuffer)
+        return;
+
+    pool->waitWhileStateIs(DrawPoolState::PREPARING);
+    pool->setDrawState(DrawPoolState::DRAWING);
+
+    if (hasFramebuffer)
+        pool->m_framebuffer->bind();
+
+    for (const auto& obj : pool->m_objectsDraw) {
+        drawObject(pool, obj);
+    }
+
+    if (hasFramebuffer) {
+        pool->m_framebuffer->release();
+
+        // Let's clean this up so that the cleaning is not done in another thread,
+        // and thus the CPU consumption will be partitioned.
+        pool->m_objectsDraw.clear();
+    }
+
+    if (pool->m_atlas)
+        pool->m_atlas->flush();
+
+    pool->setDrawState(DrawPoolState::RENDERED);
 }
 
 void DrawPoolManager::drawPool(const DrawPoolType type) {
@@ -200,29 +246,20 @@ void DrawPoolManager::drawPool(const DrawPoolType type) {
     if (!pool->isEnabled())
         return;
 
-    std::scoped_lock l(pool->m_mutexDraw);
+    drawObjects(pool);
+
     if (pool->hasFrameBuffer()) {
-        if (pool->m_repaint) {
-            pool->m_repaint.store(false);
-            pool->m_framebuffer->bind();
-            for (const auto& obj : pool->m_objectsDraw)
-                drawObject(obj);
-            pool->m_framebuffer->release();
-        }
-
-        // Let's clean this up so that the cleaning is not done in another thread,
-        // and thus the CPU consumption will be partitioned.
-        pool->m_objectsDraw.clear();
-
         g_painter->resetState();
 
         if (pool->m_beforeDraw) pool->m_beforeDraw();
         pool->m_framebuffer->draw();
         if (pool->m_afterDraw) pool->m_afterDraw();
-    } else {
-        pool->m_repaint.store(false);
-        for (const auto& obj : pool->m_objectsDraw) {
-            drawObject(obj);
-        }
+    }
+}
+
+void DrawPoolManager::removeTextureFromAtlas(uint32_t id) {
+    for (auto pool : m_pools) {
+        if (pool->m_atlas)
+            pool->m_atlas->removeTexture(id);
     }
 }

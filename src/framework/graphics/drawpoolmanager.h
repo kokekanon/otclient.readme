@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2024 OTClient <https://github.com/edubart/otclient>
+ * Copyright (c) 2010-2025 OTClient <https://github.com/edubart/otclient>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -107,14 +107,17 @@ public:
 
     bool isPreDrawing() const;
 
+    void removeTextureFromAtlas(uint32_t id);
+
 private:
     DrawPool* getCurrentPool() const;
 
     void draw();
     void init(uint16_t spriteSize);
     void terminate() const;
-    void drawObject(const DrawPool::DrawObject& obj);
+    void drawObject(DrawPool* pool, const DrawPool::DrawObject& obj);
     void drawPool(DrawPoolType type);
+    void drawObjects(DrawPool* pool);
 
     std::array<DrawPool*, static_cast<uint8_t>(DrawPoolType::LAST)> m_pools{};
 
